@@ -1,0 +1,94 @@
+{% extends "base.html" %} {% block title %}WayWise | Travel Preferences{%
+endblock %} {% block content %}
+
+<section class="planning-page">
+  <div class="planning-header">
+    <h1>Tell Us How You Travel</h1>
+    <p>We'll use your preferences to shape your itinerary.</p>
+  </div>
+
+  <div class="trip-summary">
+    <h2>Your Trip</h2>
+
+    <p><strong>Destination:</strong> {{ destination }}</p>
+    <p><strong>Duration:</strong> {{ days }} days</p>
+    <p><strong>Travellers:</strong> {{ travellers }}</p>
+    <p><strong>Budget:</strong> ₹{{ budget }}</p>
+  </div>
+
+  <form
+    class="planning-form"
+    method="POST"
+    action="{{ url_for('generate_itinerary') }}"
+  >
+    <div class="form-group">
+      <label>How flexible is your budget?</label>
+
+      <label>
+        <input type="radio" name="budget_flexibility" value="strict" />
+        Strict — stay within my budget
+      </label>
+
+      <label>
+        <input type="radio" name="budget_flexibility" value="flexible" />
+        Flexible — I can spend a little more
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>Do you want to keep an emergency fund?</label>
+
+      <label>
+        <input type="radio" name="emergency_fund" value="yes" />
+        Yes
+      </label>
+
+      <label>
+        <input type="radio" name="emergency_fund" value="no" />
+        No
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>Where would you prefer to stay?</label>
+
+      <label>
+        <input type="radio" name="accommodation" value="hotel" />
+        Hotel
+      </label>
+
+      <label>
+        <input type="radio" name="accommodation" value="homestay" />
+        Homestay
+      </label>
+
+      <label>
+        <input type="radio" name="accommodation" value="hostel" />
+        Hostel
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>What kind of daily pace do you prefer?</label>
+
+      <label>
+        <input type="radio" name="pace" value="relaxed" />
+        Relaxed
+      </label>
+
+      <label>
+        <input type="radio" name="pace" value="balanced" />
+        Balanced
+      </label>
+
+      <label>
+        <input type="radio" name="pace" value="packed" />
+        Packed
+      </label>
+    </div>
+
+    <button type="submit" class="hero-btn">Generate Itinerary</button>
+  </form>
+</section>
+
+{% endblock %}

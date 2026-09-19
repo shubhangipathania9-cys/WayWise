@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block title %}WayWise | Your Itinerary{% endblock
+%} {% block content %}
+
+<section class="planning-page">
+  <div class="planning-header">
+    <h1>Your WayWise Itinerary</h1>
+    <p>
+      Your trip preferences have been received. Your personalized journey will
+      be built here.
+    </p>
+  </div>
+
+  <div class="trip-summary">
+    <h2>Travel Preferences</h2>
+
+    <p>
+      <strong>Budget Flexibility:</strong>
+      {{ budget_flexibility }}
+    </p>
+
+    <p>
+      <strong>Emergency Fund:</strong>
+      {{ emergency_fund }}
+    </p>
+
+    <p>
+      <strong>Accommodation:</strong>
+      {{ accommodation }}
+    </p>
+
+    <p>
+      <strong>Travel Pace:</strong>
+      {{ pace }}
+    </p>
+  </div>
+
+  <div class="itinerary-placeholder">
+    <h2>Itinerary Coming Next</h2>
+
+    <p>
+      WayWise will use your trip details and travel preferences to create a
+      personalized day-by-day itinerary.
+    </p>
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %} {% block title %} WayWise | Travel Smarter {% endblock
+%} {% block content %}
+
+<section class="hero">
+  <div class="hero-content">
+    <h1>
+      Plan Within Your Budget.<br />
+      Discover Beyond The Ordinary.
+    </h1>
+
+    <p>
+      Create personalized journeys across India built around your budget,
+      preferences, and travel style.
+    </p>
+
+    <a href="{{ url_for('plan') }}" class="hero-btn">Start Planning</a>
+  </div>
+
+  <div class="hero-image">
+    <img
+      src="{{ url_for('static', filename='images/travel.png') }}"
+      alt="Travel Illustration"
+    />
+  </div>
+</section>
+{% endblock %}
