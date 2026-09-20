@@ -35,14 +35,22 @@ def generate_itinerary():
     emergency_fund = request.form["emergency_fund"]
     accommodation = request.form["accommodation"]
     pace = request.form["pace"]
+    destination = request.form["destination"]
+    days = request.form["days"]
+    travellers = request.form["travellers"]
+    budget = request.form["budget"]
 
     return render_template(
-        "itinerary.html",
-        budget_flexibility=budget_flexibility,
-        emergency_fund=emergency_fund,
-        accommodation=accommodation,
-        pace=pace
-    )
+    "itinerary.html",
+    destination=destination,
+    days=days,
+    travellers=travellers,
+    budget=budget,
+    budget_flexibility=budget_flexibility,
+    emergency_fund=emergency_fund,
+    accommodation=accommodation,
+    pace=pace
+)
 
 if __name__ == "__main__":
     app.run(debug=True)

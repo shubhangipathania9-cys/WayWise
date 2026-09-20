@@ -21,6 +21,10 @@ endblock %} {% block content %}
     method="POST"
     action="{{ url_for('generate_itinerary') }}"
   >
+    <input type="hidden" name="destination" value="{{ destination }}" />
+    <input type="hidden" name="days" value="{{ days }}" />
+    <input type="hidden" name="travellers" value="{{ travellers }}" />
+    <input type="hidden" name="budget" value="{{ budget }}" />
     <div class="form-group">
       <label>How flexible is your budget?</label>
 
