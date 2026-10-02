@@ -14,17 +14,17 @@
 
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f7fa;
-  color: #30343b;
+  background-color: #1f1f1f;
+  color: #f5f5f5;
   line-height: 1.6;
 }
 
 /* ---------- Navigation ---------- */
 
 header {
-  background-color: #ffffff;
+  background-color: #1f1f1f;
   padding: 20px 7%;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #3a3a3a;
 }
 
 nav {
@@ -33,7 +33,7 @@ nav {
 }
 
 nav a {
-  color: #059669;
+  color: #f5f5f5;
   text-decoration: none;
   font-size: 1.5rem;
   font-weight: 700;
@@ -45,6 +45,7 @@ nav a {
 main {
   min-height: calc(100vh - 80px);
 }
+
 /* ========================================
    HERO SECTION
    ======================================== */
@@ -69,7 +70,7 @@ main {
   font-size: 3.2rem;
   line-height: 1.2;
 
-  color: #30343b;
+  color: #f5f5f5;
 
   margin-bottom: 20px;
 }
@@ -77,16 +78,18 @@ main {
 .hero-content p {
   font-size: 1.1rem;
 
-  color: #6b7280;
+  color: #d0d0d0;
 
   max-width: 550px;
 
   margin-bottom: 30px;
 }
 
+/* ---------- Hero Button ---------- */
+
 .hero-btn {
-  background-color: #059669;
-  color: white;
+  background-color: #9bc9e3;
+  color: #1f1f1f;
 
   border: none;
 
@@ -104,7 +107,10 @@ main {
 
 .hero-btn:hover {
   transform: translateY(-2px);
+  background-color: #b5dced;
 }
+
+/* ---------- Hero Image ---------- */
 
 .hero-image {
   flex: 1;
@@ -115,5 +121,328 @@ main {
 
 .hero-image img {
   width: 100%;
-  max-width: 500px;
+  max-width: 650px;
+}
+/* ========================================
+   PLANNING / PREFERENCES PAGE
+   ======================================== */
+
+.planning-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 70px 7%;
+}
+
+/* ---------- Planning Header ---------- */
+
+.planning-header {
+  text-align: center;
+  margin-bottom: 45px;
+}
+
+.planning-header h1 {
+  font-size: 2.6rem;
+  color: #f5f5f5;
+  margin-bottom: 12px;
+}
+
+.planning-header p {
+  color: #bdbdbd;
+  font-size: 1.05rem;
+}
+
+/* ---------- Trip Summary ---------- */
+
+.trip-summary {
+  background-color: #292929;
+  border: 1px solid #3a3a3a;
+  border-radius: 14px;
+  padding: 25px 30px;
+  margin-bottom: 35px;
+}
+
+.trip-summary h2 {
+  font-size: 1.3rem;
+  margin-bottom: 18px;
+}
+
+.trip-summary p {
+  color: #d0d0d0;
+  margin-bottom: 7px;
+}
+
+.trip-summary strong {
+  color: #f5f5f5;
+}
+
+/* ---------- Planning Form ---------- */
+
+.planning-form {
+  background-color: #292929;
+  border: 1px solid #3a3a3a;
+  border-radius: 14px;
+  padding: 35px;
+}
+
+/* ---------- Individual Questions ---------- */
+
+.form-group {
+  margin-bottom: 32px;
+}
+
+.form-group > label:first-child,
+.form-group > p:first-child {
+  display: block;
+  color: #f5f5f5;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ---------- Options ---------- */
+
+.form-group label:not(:first-child) {
+  display: block;
+  color: #cfcfcf;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+/* ---------- Radio & Checkbox ---------- */
+
+.form-group input[type="radio"],
+.form-group input[type="checkbox"] {
+  accent-color: #6faf8f;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+/* ---------- Generate Button ---------- */
+
+.planning-form .hero-btn {
+  margin-top: 5px;
+}
+/* ========================================
+   ITINERARY - TRAVEL PREFERENCES
+   ======================================== */
+
+.trip-summary {
+  max-width: 700px;
+  margin: 0 auto 35px;
+  padding: 30px 45px;
+}
+
+.trip-summary h2 {
+  text-align: left;
+  margin-left: 10px;
+  margin-bottom: 28px;
+  color: #9bc9e3;
+}
+
+/* ---------- Trip Details ---------- */
+
+.trip-summary > p {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 13px;
+  text-align: left;
+}
+
+.trip-summary > p strong {
+  width: 190px;
+  flex-shrink: 0;
+  text-align: left;
+  margin-right: 25px;
+  color: #f5f5f5;
+}
+
+/* ---------- Travel Style ---------- */
+
+.trip-summary .form-group {
+  margin-top: 28px;
+  text-align: left;
+}
+
+.trip-summary .form-group > p:first-child {
+  margin-bottom: 12px;
+}
+
+.trip-summary .form-group > p:not(:first-child) {
+  display: inline-block;
+  background-color: #333333;
+  border: 1px solid #9bc9e3;
+  border-radius: 20px;
+  padding: 5px 14px;
+  margin: 3px 5px 3px 0;
+  color: #d0d0d0;
+}
+.trip-summary .form-group > p:first-child strong {
+  color: #9bc9e3;
+}
+/* ========================================
+   WAYWISE - PAGE HEADING STYLE
+   ======================================== */
+
+.planning-header h1 {
+  color: #9bc9e3;
+}
+
+.trip-summary h2 {
+  color: #9bc9e3;
+}
+/* ========================================
+   PREFERENCE OPTIONS
+   ======================================== */
+
+.planning-form .form-group {
+  margin-bottom: 35px;
+}
+
+.planning-form .form-group > label:first-child {
+  display: block;
+  color: #9bc9e3;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+/* ---------- Option Cards ---------- */
+
+.planning-form .form-group > label:not(:first-child) {
+  display: block;
+  background-color: #333333;
+  border: 1px solid #414141;
+  border-radius: 10px;
+  padding: 13px 16px;
+  margin-bottom: 9px;
+  color: #d0d0d0;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+/* ---------- Hover ---------- */
+
+.planning-form .form-group > label:not(:first-child):hover {
+  border-color: #9bc9e3;
+  background-color: #383838;
+}
+
+/* ---------- Radio & Checkbox ---------- */
+
+.planning-form input[type="radio"],
+.planning-form input[type="checkbox"] {
+  accent-color: #9bc9e3;
+  margin-right: 10px;
+}
+/* ========================================
+   WAYWISE ITINERARY NOTEBOOK
+   ======================================== */
+
+.notebook-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin: 50px auto;
+}
+
+/* ---------- Notebook ---------- */
+
+.notebook {
+  display: flex;
+  width: 1900px;
+  min-height: 600px;
+}
+
+/* ---------- Individual Pages ---------- */
+
+.notebook-page {
+  flex: 1;
+  background-color: #292929;
+  border: 1px solid #414141;
+  padding: 45px;
+}
+
+/* ---------- Left Page ---------- */
+
+.left-page {
+  border-radius: 14px 0 0 14px;
+}
+
+/* ---------- Right Page ---------- */
+
+.right-page {
+  border-radius: 0 14px 14px 0;
+}
+
+/* ---------- Page Headings ---------- */
+
+.notebook-page h2 {
+  color: #9bc9e3;
+  font-size: 1.8rem;
+  margin-bottom: 18px;
+}
+
+.notebook-page p {
+  color: #d0d0d0;
+  line-height: 1.7;
+}
+
+/* ---------- Day Subtitle ---------- */
+
+.day-subtitle {
+  margin-bottom: 30px;
+  color: #bdbdbd;
+}
+
+/* ---------- Activities ---------- */
+
+.day-section {
+  margin-bottom: 25px;
+}
+
+.day-section h3 {
+  color: #f5f5f5;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+/* ---------- Notebook Note ---------- */
+
+.notebook-note {
+  margin-top: 35px;
+  padding: 20px;
+  background-color: #333333;
+  border: 1px solid #414141;
+  border-radius: 10px;
+}
+
+/* ---------- Navigation Arrows ---------- */
+
+.page-arrow {
+  align-self: center;
+  background: none;
+  border: none;
+  color: #9bc9e3;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.page-arrow:hover {
+  color: #b5dced;
+  transform: scale(1.15);
+}
+.notebook {
+  position: relative;
+}
+
+.notebook::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background-color: #414141;
 }

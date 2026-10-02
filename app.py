@@ -35,6 +35,7 @@ def generate_itinerary():
     emergency_fund = request.form["emergency_fund"]
     accommodation = request.form["accommodation"]
     pace = request.form["pace"]
+    travel_styles = request.form.getlist("travel_style")
     destination = request.form["destination"]
     days = request.form["days"]
     travellers = request.form["travellers"]
@@ -49,7 +50,8 @@ def generate_itinerary():
     budget_flexibility=budget_flexibility,
     emergency_fund=emergency_fund,
     accommodation=accommodation,
-    pace=pace
+    pace=pace,
+    travel_styles=travel_styles
 )
 
 if __name__ == "__main__":
