@@ -1,26 +1,237 @@
-{% extends "base.html" %} {% block title %} WayWise | Travel Smarter {% endblock
-%} {% block content %}
+{% extends "base.html" %} {% block title %}WayWise | Find Your Own Way{%
+endblock %} {% block content %}
 
-<section class="hero">
-  <div class="hero-content">
+<section class="hero hero-redesign">
+  <div class="hero-copy">
+    <div class="eyebrow">
+      <span class="eyebrow-dot"></span>
+      MADE FOR THE WAY YOU TRAVEL
+    </div>
+
     <h1>
-      Plan Within Your Budget.<br />
-      Discover Beyond The Ordinary.
+      The journey is<br />
+      <span>yours to discover.</span>
     </h1>
 
-    <p>
-      Create personalized journeys across India built around your budget,
-      preferences, and travel style.
+    <p class="hero-description">
+      Thoughtful itineraries. Places worth discovering. Adventures that respect
+      your budget.
     </p>
 
-    <a href="{{ url_for('plan') }}" class="hero-btn">Start Planning</a>
+    <div class="hero-actions">
+      <a href="{{ url_for('plan') }}" class="hero-btn">
+        Build my itinerary <span aria-hidden="true">↗</span>
+      </a>
+      <a href="#destinations" class="text-link">
+        Explore destinations <span aria-hidden="true">↓</span>
+      </a>
+    </div>
+
+    <div class="hero-trust">
+      <span class="trust-icon">₹</span>
+      <span>Budget-conscious planning</span>
+      <span class="trust-divider"></span>
+      <span class="trust-icon">✳</span>
+      <span>Beyond the usual stops</span>
+    </div>
   </div>
 
-  <div class="hero-image">
+  <div class="hero-visual">
     <img
+      class="hero-main-image"
       src="{{ url_for('static', filename='images/travel.png') }}"
-      alt="Travel Illustration"
+      alt="A glimpse of the adventures waiting to be discovered"
     />
+
+    <div class="image-caption">
+      <span class="caption-indicator"></span>
+      YOUR NEXT CHAPTER STARTS HERE
+    </div>
+
+    <div class="floating-note">
+      <span class="floating-note-icon">✦</span>
+      <div>
+        <strong>Your kind of adventure</strong>
+        <span>Not just another itinerary.</span>
+      </div>
+    </div>
+
+    <div class="hero-index">01 <span>/ 03</span></div>
   </div>
 </section>
+
+<section class="destination-section section-shell" id="destinations">
+  <div class="section-heading">
+    <div>
+      <span class="section-kicker">WHERE TO NEXT?</span>
+      <h2>India, your way.</h2>
+      <p>Start with a place. Let the journey become your own.</p>
+    </div>
+
+    <a href="{{ url_for('plan') }}" class="section-link">
+      Plan your own trip <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <div class="destination-grid">
+    <a class="destination-card destination-large" href="{{ url_for('plan') }}">
+      <img
+        src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1000&q=85"
+        alt="Mountains around Manali"
+        loading="lazy"
+      />
+      <span class="destination-shade"></span>
+      <span class="destination-tag">MOUNTAINS & NATURE</span>
+      <span class="destination-info">
+        <span>
+          <strong>Manali</strong>
+          <small>Find your quiet in the mountains</small>
+        </span>
+        <span class="destination-arrow">↗</span>
+      </span>
+    </a>
+
+    <a class="destination-card" href="{{ url_for('plan') }}">
+      <img
+        src="https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?auto=format&fit=crop&w=800&q=85"
+        alt="Historic architecture in Jaipur"
+        loading="lazy"
+      />
+      <span class="destination-shade"></span>
+      <span class="destination-tag">CULTURE & HERITAGE</span>
+      <span class="destination-info">
+        <span>
+          <strong>Jaipur</strong>
+          <small>Stories in every street</small>
+        </span>
+        <span class="destination-arrow">↗</span>
+      </span>
+    </a>
+
+    <a class="destination-card" href="{{ url_for('plan') }}">
+      <img
+        src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=85"
+        alt="Lush green landscapes in Kerala"
+        loading="lazy"
+      />
+      <span class="destination-shade"></span>
+      <span class="destination-tag">SLOW TRAVEL</span>
+      <span class="destination-info">
+        <span>
+          <strong>Kerala</strong>
+          <small>Take the scenic route</small>
+        </span>
+        <span class="destination-arrow">↗</span>
+      </span>
+    </a>
+
+    <a class="destination-card" href="{{ url_for('plan') }}">
+      <img
+        src="https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=85"
+        alt="Varanasi beside the Ganges"
+        loading="lazy"
+      />
+      <span class="destination-shade"></span>
+      <span class="destination-tag">LOCAL LIFE & HISTORY</span>
+      <span class="destination-info">
+        <span>
+          <strong>Varanasi</strong>
+          <small>Experience a city of stories</small>
+        </span>
+        <span class="destination-arrow">↗</span>
+      </span>
+    </a>
+  </div>
+</section>
+
+<section class="discovery-section" id="hidden-gems">
+  <div class="discovery-image">
+    <img
+      src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85"
+      alt="A quiet mountain landscape waiting to be explored"
+      loading="lazy"
+    />
+    <span class="discovery-image-label">LOOK BEYOND THE OBVIOUS</span>
+  </div>
+
+  <div class="discovery-copy">
+    <span class="section-kicker">THE WAYWISE DIFFERENCE</span>
+    <h2>Not just where everyone goes. <span>What you'll remember.</span></h2>
+    <p>
+      Find room for local experiences, quieter corners, regional food and
+      unexpected discoveries — without losing sight of your budget.
+    </p>
+
+    <div class="discovery-points">
+      <div>
+        <span class="point-symbol">↗</span>
+        <span>
+          <strong>Beyond the usual</strong>
+          <small>Make space for lesser-known places.</small>
+        </span>
+      </div>
+      <div>
+        <span class="point-symbol">₹</span>
+        <span>
+          <strong>Budget with intention</strong>
+          <small>Understand your estimated trip costs.</small>
+        </span>
+      </div>
+      <div>
+        <span class="point-symbol">✳</span>
+        <span>
+          <strong>Your journey, your rules</strong>
+          <small>Choose the pace and experiences you love.</small>
+        </span>
+      </div>
+    </div>
+
+    <a href="{{ url_for('plan') }}" class="hero-btn">
+      Find my kind of trip <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</section>
+
+<section class="how-section section-shell" id="how-it-works">
+  <div class="section-heading">
+    <div>
+      <span class="section-kicker">SIMPLE BY DESIGN</span>
+      <h2>Three steps to somewhere new.</h2>
+      <p>Less time figuring it all out. More time looking forward to it.</p>
+    </div>
+  </div>
+
+  <div class="steps-grid">
+    <article class="step-card">
+      <span class="step-number">01</span>
+      <span class="step-icon">⌖</span>
+      <h3>Tell us what matters</h3>
+      <p>Choose your destination, budget, travel style and preferred pace.</p>
+    </article>
+
+    <article class="step-card">
+      <span class="step-number">02</span>
+      <span class="step-icon">✳</span>
+      <h3>Shape your journey</h3>
+      <p>Explore a day-by-day plan designed around your preferences.</p>
+    </article>
+
+    <article class="step-card">
+      <span class="step-number">03</span>
+      <span class="step-icon">↗</span>
+      <h3>Make it yours</h3>
+      <p>Review your plans, adjust activities and prepare for your trip.</p>
+    </article>
+  </div>
+</section>
+
+<section class="closing-cta">
+  <span class="section-kicker">YOUR NEXT STORY IS OUT THERE</span>
+  <h2>Go beyond the expected.</h2>
+  <p>Start with your budget. Leave room for discovery.</p>
+  <a href="{{ url_for('plan') }}" class="hero-btn">
+    Let's plan your trip <span aria-hidden="true">↗</span>
+  </a>
+</section>
+
 {% endblock %}

@@ -52,8 +52,13 @@
     data-budget="{{ budget }}"
   ></div>
   <div class="notebook-wrapper">
-    <button class="page-arrow left-arrow">❮</button>
-
+    <button
+      type="button"
+      class="page-arrow left-arrow"
+      aria-label="Previous itinerary pages"
+    >
+      &#10094;
+    </button>
     <div class="notebook">
       <!-- LEFT PAGE -->
       <div class="notebook-page left-page" id="left-page">
@@ -91,7 +96,13 @@
       </div>
     </div>
 
-    <button class="page-arrow right-arrow">❯</button>
+    <button
+      type="button"
+      class="page-arrow right-arrow"
+      aria-label="Next itinerary pages"
+    >
+      &#10095;
+    </button>
   </div>
 </section>
 {% endblock %}
