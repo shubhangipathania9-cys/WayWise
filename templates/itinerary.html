@@ -1,49 +1,230 @@
-{% extends "base.html" %} {% block title %}WayWise | Your Itinerary{% endblock
-%} {% block content %}
-
+{% extends "base.html" %} {% block title %}WayWise | Your Itinerary{% endblock%}
+{% block content %}
 <section class="planning-page">
   <div class="planning-header">
+    <span class="section-kicker">YOUR JOURNEY, YOUR WAY</span>
     <h1>Your WayWise Itinerary</h1>
-    <p>
-      Your trip preferences have been received. Your personalized journey will
-      be built here.
-    </p>
+    <p>A starting plan for discovering {{ destination }} at your own pace.</p>
   </div>
 
-  <div class="trip-summary">
-    <h2>Travel Preferences</h2>
-    <p><strong>Destination:</strong> {{ destination }}</p>
-    <p><strong>Duration:</strong> {{ days }} days</p>
-    <p><strong>Travellers:</strong> {{ travellers }}</p>
-    <p><strong>Budget:</strong> ₹{{ budget }}</p>
+  <section class="trip-summary">
+    <h2>Trip Overview</h2>
 
-    <p>
-      <strong>Budget Flexibility:</strong>
-      {{ budget_flexibility }}
-    </p>
+    <div class="trip-overview-grid">
+      <div>
+        <span>Destination</span>
+        <strong>{{ destination }}</strong>
+      </div>
+      <div>
+        <span>Duration</span>
+        <strong>{{ days }} days</strong>
+      </div>
+      <div>
+        <span>Travellers</span>
+        <strong>{{ travellers }}</strong>
+      </div>
+      <div>
+        <span>Total budget</span>
+        <strong>₹{{ "{:,}".format(budget) }}</strong>
+      </div>
+    </div>
 
-    <p>
-      <strong>Emergency Fund:</strong>
-      {{ emergency_fund }}
-    </p>
-
-    <p>
-      <strong>Accommodation:</strong>
-      {{ accommodation }}
-    </p>
-
-    <p>
-      <strong>Travel Pace:</strong>
-      {{ pace }}
-    </p>
-    <div class="form-group">
-      <p><strong>Travel Style:</strong></p>
-
+    <div class="preference-tags">
+      <span>{{ accommodation|title }}</span>
+      <span>{{ pace|title }} pace</span>
       {% for style in travel_styles %}
-      <p>{{ style }}</p>
+      <span>{{ style|title }}</span>
       {% endfor %}
     </div>
-  </div>
+  </section>
+
+  <section class="budget-section">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker">SPEND WITH INTENTION</span>
+        <h2>Your estimated budget</h2>
+        <p>
+          Illustrative allocations based on your total budget and preferences.
+        </p>
+      </div>
+    </div>
+
+    <div class="budget-total">
+      <span>Total trip budget</span>
+      <strong>₹{{ "{:,}".format(budget_breakdown.total) }}</strong>
+      <div class="budget-meta">
+        <span
+          >₹{{ "{:,}".format(budget_breakdown.per_person) }} per traveller</span
+        >
+        <span
+          >₹{{ "{:,}".format(budget_breakdown.per_day) }} per day for the
+          group</span
+        >
+      </div>
+    </div>
+
+    <div class="budget-categories">
+      {% for category in budget_breakdown.categories %} {% set percentage =
+      (category.amount / budget_breakdown.total * 100) if budget_breakdown.total
+      > 0 else 0 %}
+
+      <div class="budget-category">
+        <div class="budget-category-heading">
+          <span>{{ category.name }}</span>
+          <strong>₹{{ "{:,}".format(category.amount) }}</strong>
+        </div>
+
+        <div class="budget-track">
+          <div class="budget-fill" data-width="{{ percentage }}"></div>
+        </div>
+      </div>
+      {% endfor %} {% set emergency_percentage =
+      (budget_breakdown.emergency_buffer / budget_breakdown.total * 100) if
+      budget_breakdown.total > 0 else 0 %}
+
+      <div class="budget-category emergency-category">
+        <div class="budget-category-heading">
+          <span>Emergency buffer</span>
+          <strong
+            >₹{{ "{:,}".format(budget_breakdown.emergency_buffer) }}</strong
+          >
+        </div>
+
+        <div class="budget-track">
+          <div
+            class="budget-fill"
+            data-width="{{ emergency_percentage }}"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="budget-disclaimer">
+      These are planning estimates, not live prices or guaranteed costs. Check
+      transport fares, accommodation rates, activity fees and local conditions
+      before booking.
+    </p>
+  </section>
+  {% if is_manali %}
+  <section class="recommendations-section">
+    <div class="section-heading">
+      <span class="section-kicker">DISCOVER BEYOND THE ORDINARY</span>
+      <h2>Places worth discovering</h2>
+      <p>Popular landmarks, local culture and quieter corners of Manali.</p>
+    </div>
+
+    <div class="recommendation-grid">
+      {% for place in place_recommendations %}
+      <article class="recommendation-card">
+        <span class="recommendation-tag">{{ place.kind }}</span>
+        <h3>{{ place.name }}</h3>
+        <p>{{ place.description }}</p>
+
+        <div class="recommendation-meta">
+          <span>{{ place.type }}</span>
+          <span>{{ place.area }}</span>
+        </div>
+
+        <a href="{{ place.url }}" target="_blank" rel="noopener noreferrer">
+          Explore location ↗
+        </a>
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="section-heading">
+      <span class="section-kicker">FIND YOUR BASE</span>
+      <h2>Stays to explore</h2>
+    </div>
+
+    <div class="recommendation-grid">
+      {% for stay in stay_recommendations %}
+      <article class="recommendation-card">
+        <span class="recommendation-tag">{{ stay.type }}</span>
+        <h3>{{ stay.name }}</h3>
+        <p>{{ stay.best_for }}</p>
+        <div class="recommendation-meta">
+          <span>{{ stay.area }}</span>
+        </div>
+        <a href="{{ stay.url }}" target="_blank" rel="noopener noreferrer">
+          Check property ↗
+        </a>
+      </article>
+      {% else %}
+      <p>No stays match this preference yet.</p>
+      {% endfor %}
+    </div>
+
+    <p class="budget-disclaimer">
+      Check current prices, availability and recent reviews before booking.
+      These links do not guarantee a room or a live price.
+    </p>
+  </section>
+  {% endif %}
+  <section class="journal-section">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker">YOUR TRAVEL JOURNAL</span>
+        <h2>Every day, a new discovery.</h2>
+        <p>
+          Edit an activity directly in the notebook. Your changes stay in this
+          browser.
+        </p>
+      </div>
+    </div>
+
+    <div class="notebook-wrapper">
+      <button
+        type="button"
+        class="page-arrow left-arrow"
+        aria-label="Previous itinerary pages"
+      >
+        &#10094;
+      </button>
+
+      <div class="notebook">
+        <div class="notebook-page left-page" id="left-page">
+          <h2>Your Journey Begins</h2>
+          <p>Your travel journal for {{ destination }}.</p>
+          <div class="notebook-note">
+            <p><strong>Destination:</strong> {{ destination }}</p>
+            <p><strong>Duration:</strong> {{ days }} days</p>
+            <p><strong>Travellers:</strong> {{ travellers }}</p>
+            <p><strong>Budget:</strong> ₹{{ "{:,}".format(budget) }}</p>
+          </div>
+        </div>
+
+        <div class="notebook-page right-page" id="right-page">
+          <h2>Day 1</h2>
+          <p>Your itinerary will appear here.</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="page-arrow right-arrow"
+        aria-label="Next itinerary pages"
+      >
+        &#10095;
+      </button>
+    </div>
+
+    <div class="journal-controls">
+      <span id="spread-indicator" aria-live="polite">Your trip overview</span>
+      <button type="button" class="hero-btn" id="reset-itinerary">
+        Reset edits
+      </button>
+    </div>
+
+    <p class="edit-hint">
+      Tip: click an activity's text to edit it. Changes are saved locally in
+      this browser.
+    </p>
+  </section>
+
+  <script id="itinerary-data" type="application/json">
+    {{ itinerary|tojson }}
+  </script>
   <div
     id="trip-data"
     data-destination="{{ destination }}"
@@ -51,58 +232,5 @@
     data-travellers="{{ travellers }}"
     data-budget="{{ budget }}"
   ></div>
-  <div class="notebook-wrapper">
-    <button
-      type="button"
-      class="page-arrow left-arrow"
-      aria-label="Previous itinerary pages"
-    >
-      &#10094;
-    </button>
-    <div class="notebook">
-      <!-- LEFT PAGE -->
-      <div class="notebook-page left-page" id="left-page">
-        <h2>Enjoy Your Customised Trip</h2>
-
-        <p>Your journey has been shaped around the way you like to travel.</p>
-
-        <div class="notebook-note">
-          <p><strong>Destination:</strong> {{ destination }}</p>
-          <p><strong>Travellers:</strong> {{ travellers }}</p>
-          <p><strong>Duration:</strong> {{ days }} days</p>
-        </div>
-      </div>
-
-      <!-- RIGHT PAGE -->
-      <div class="notebook-page right-page" id="right-page">
-        <h2>Day 1</h2>
-
-        <p class="day-subtitle">Arrival & Local Exploration</p>
-
-        <div class="day-section">
-          <h3>Morning</h3>
-          <p>Arrive at your destination and settle in.</p>
-        </div>
-
-        <div class="day-section">
-          <h3>Afternoon</h3>
-          <p>Explore a nearby local attraction.</p>
-        </div>
-
-        <div class="day-section">
-          <h3>Evening</h3>
-          <p>Discover local food and explore the surroundings.</p>
-        </div>
-      </div>
-    </div>
-
-    <button
-      type="button"
-      class="page-arrow right-arrow"
-      aria-label="Next itinerary pages"
-    >
-      &#10095;
-    </button>
-  </div>
 </section>
 {% endblock %}

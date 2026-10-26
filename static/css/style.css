@@ -1573,3 +1573,253 @@ html[data-theme="dark"] .notebook {
   line-height: 1.5;
   overflow-wrap: break-word;
 }
+/* WAYWISE: TRIP OVERVIEW, BUDGET & JOURNAL CONTROLS */
+
+.trip-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.trip-overview-grid > div,
+.budget-total {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.trip-overview-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trip-overview-grid span,
+.budget-total > span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.trip-overview-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.preference-tags,
+.budget-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preference-tags span {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.budget-section,
+.journal-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 70px auto;
+  padding: 0 24px;
+}
+
+.budget-total {
+  margin: 24px 0;
+}
+
+.budget-total > strong {
+  display: block;
+  margin: 8px 0 14px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--accent);
+}
+
+.budget-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.budget-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.budget-category {
+  min-width: 0;
+}
+
+.budget-category-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.budget-category-heading strong {
+  white-space: nowrap;
+}
+
+.budget-track {
+  height: 7px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.budget-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.budget-disclaimer,
+.edit-hint {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.journal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.journal-day-label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.editable-activity {
+  padding: 5px;
+  border-bottom: 1px dashed var(--border);
+  cursor: text;
+}
+
+.editable-activity:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.page-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .trip-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budget-categories {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-section,
+  .journal-section {
+    margin: 48px auto;
+    padding: 0 18px;
+  }
+
+  .journal-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+.budget-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+
+/* WayWise recommendations */
+
+.recommendations-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 64px auto;
+  padding: 0 24px;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.recommendation-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  gap: 14px;
+}
+
+.recommendation-tag {
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.recommendation-card h3 {
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.recommendation-card p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.recommendation-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.recommendation-card a {
+  margin-top: auto;
+  padding-top: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.recommendation-card a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 850px) {
+  .recommendation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .recommendations-section {
+    padding: 0 18px;
+    margin: 44px auto;
+  }
+
+  .recommendation-grid {
+    grid-template-columns: 1fr;
+  }
+}
