@@ -1,9 +1,25 @@
-
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
 import os
 import re
 from urllib.parse import quote_plus
+
+from io import BytesIO
+from xml.sax.saxutils import escape
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    PageBreak,
+)
 
 app = Flask(__name__)
 
@@ -593,6 +609,362 @@ def generate_itinerary():
         stay_recommendations=stay_recommendations,
         budget_alternatives=budget_alternatives,
         has_recommendations=has_recommendations,
+    )
+
+@app.route("/get-stays", methods=["GET"])
+def get_stays():
+    destination = request.args.get("destination", "India")
+    accommodation = request.args.get("accommodation", "hotel")
+
+    allowed_types = ["hotel", "homestay", "hostel"]
+
+    if accommodation not in allowed_types:
+        return {"error": "Invalid accommodation type"}, 400
+
+    _, stays, _ = get_destination_recommendations(
+        destination,
+        accommodation
+    )
+
+    return {"stays": stays}
+
+
+# =========================================
+# DOWNLOAD ITINERARY AS PDF
+# =========================================
+
+@app.route("/download-itinerary", methods=["POST"])
+def download_itinerary():
+    data = request.get_json(silent=True) or {}
+
+    # Read and validate trip information
+    destination = str(data.get("destination", "Your destination"))[:100]
+    days = clean_number(data.get("days"), 1, 1, 30)
+    travellers = clean_number(data.get("travellers"), 1, 1, 20)
+    accommodation = str(data.get("accommodation", "Not specified"))[:50]
+    pace = str(data.get("pace", "Not specified"))[:50]
+
+    try:
+        budget = max(0, float(data.get("budget", 0)))
+        savings = max(0, float(data.get("savings", 0)))
+    except (TypeError, ValueError):
+        budget = 0
+        savings = 0
+
+    revised_budget = max(0, budget - savings)
+
+    itinerary = data.get("itinerary", [])
+    budget_categories = data.get("budget_categories", [])
+    places = data.get("places", [])
+    stays = data.get("stays", [])
+
+    if not isinstance(itinerary, list):
+        itinerary = []
+
+    # Create an in-memory PDF
+    pdf_buffer = BytesIO()
+
+    document = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+        title=f"WayWise Itinerary - {destination}",
+        author="WayWise",
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "WayWiseTitle",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=27,
+        leading=33,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#263746"),
+        spaceAfter=12,
+    )
+
+    subtitle_style = ParagraphStyle(
+        "WayWiseSubtitle",
+        parent=styles["Normal"],
+        fontSize=11,
+        leading=17,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#61717F"),
+    )
+
+    heading_style = ParagraphStyle(
+        "WayWiseHeading",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=20,
+        textColor=colors.HexColor("#42677D"),
+        spaceBefore=12,
+        spaceAfter=9,
+    )
+
+    body_style = ParagraphStyle(
+        "WayWiseBody",
+        parent=styles["BodyText"],
+        fontSize=9.5,
+        leading=15,
+        textColor=colors.HexColor("#303943"),
+        spaceAfter=5,
+    )
+
+    small_style = ParagraphStyle(
+        "WayWiseSmall",
+        parent=styles["BodyText"],
+        fontSize=8,
+        leading=12,
+        textColor=colors.HexColor("#66717A"),
+    )
+
+    story = []
+
+    def safe_paragraph(value, style=body_style):
+        """Escape text before adding it to a ReportLab paragraph."""
+        from xml.sax.saxutils import escape
+        return Paragraph(escape(str(value or "")), style)
+
+    def add_section_heading(text):
+        story.append(Paragraph(text, heading_style))
+
+    # Cover
+    story.append(Spacer(1, 35 * mm))
+    story.append(Paragraph("WAYWISE.", title_style))
+    story.append(Paragraph(
+        "Plan Within Your Budget. Discover Beyond The Ordinary.",
+        subtitle_style
+    ))
+    story.append(Spacer(1, 20 * mm))
+    story.append(Paragraph(
+        f"Your Travel Journal for {escape(destination)}",
+        ParagraphStyle(
+            "DestinationTitle",
+            parent=title_style,
+            fontSize=21,
+            leading=27,
+        )
+    ))
+    story.append(Spacer(1, 8 * mm))
+    story.append(Paragraph(
+        "A personalised starting plan for your journey.",
+        subtitle_style
+    ))
+    story.append(Spacer(1, 35 * mm))
+
+    cover_details = [
+        ["DURATION", f"{days} days"],
+        ["TRAVELLERS", str(travellers)],
+        ["ACCOMMODATION", accommodation.title()],
+        ["TRAVEL PACE", pace.title()],
+        ["ESTIMATED BUDGET", f"Rs. {revised_budget:,.0f}"],
+    ]
+
+    cover_table = Table(cover_details, colWidths=[55 * mm, 85 * mm])
+    cover_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F1F5F7")),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#42677D")),
+        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#263746")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 11),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 11),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.white),
+    ]))
+
+    story.append(cover_table)
+    story.append(PageBreak())
+
+    # Budget overview
+    add_section_heading("Your Trip Budget")
+
+    story.append(safe_paragraph(
+        f"Original estimated budget: Rs. {budget:,.0f}"
+    ))
+    story.append(safe_paragraph(
+        f"Potential savings applied: Rs. {savings:,.0f}"
+    ))
+    story.append(safe_paragraph(
+        f"Revised estimated budget: Rs. {revised_budget:,.0f}"
+    ))
+    story.append(Spacer(1, 5 * mm))
+
+    if isinstance(budget_categories, list) and budget_categories:
+        budget_rows = [["CATEGORY", "ESTIMATED AMOUNT"]]
+
+        for category in budget_categories:
+            if not isinstance(category, dict):
+                continue
+
+            name = str(category.get("name", "Category"))[:80]
+
+            try:
+                amount = max(0, float(category.get("amount", 0)))
+            except (TypeError, ValueError):
+                amount = 0
+
+            budget_rows.append([name, f"Rs. {amount:,.0f}"])
+
+        budget_table = Table(
+            budget_rows,
+            colWidths=[100 * mm, 45 * mm],
+            repeatRows=1
+        )
+
+        budget_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#42677D")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F1F5F7")),
+            ("TEXTCOLOR", (0, 1), (-1, -1), colors.HexColor("#303943")),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.white),
+            ("TOPPADDING", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ]))
+
+        story.append(budget_table)
+
+    story.append(Spacer(1, 8 * mm))
+    story.append(safe_paragraph(
+        "Budget figures are illustrative planning estimates, not live prices "
+        "or guaranteed costs. Check current rates before booking.",
+        small_style
+    ))
+
+    # Day-by-day itinerary
+    story.append(PageBreak())
+    add_section_heading("Your Day-by-Day Journey")
+
+    for day in itinerary:
+        if not isinstance(day, dict):
+            continue
+
+        day_number = day.get("day", "")
+        day_title = day.get("title", "")
+
+        story.append(Paragraph(
+            f"Day {day_number}: {escape(str(day_title))}",
+            heading_style
+        ))
+
+        activities = day.get("activities", [])
+
+        if isinstance(activities, list):
+            for activity in activities:
+                if not isinstance(activity, dict):
+                    continue
+
+                activity_time = activity.get("time", "Activity")
+                activity_text = activity.get("activity", "")
+
+                story.append(safe_paragraph(
+                    f"<b>{escape(str(activity_time))}</b> — "
+                    f"{escape(str(activity_text))}"
+                ))
+
+        if day.get("tip"):
+            story.append(safe_paragraph(
+                f"<b>WayWise tip:</b> {day['tip']}"
+            ))
+
+        story.append(Spacer(1, 5 * mm))
+
+    # Places to discover
+    if isinstance(places, list) and places:
+        story.append(PageBreak())
+        add_section_heading("Places Worth Discovering")
+
+        for place in places:
+            if not isinstance(place, dict):
+                continue
+
+            story.append(Paragraph(
+                f"<b>{escape(str(place.get('name', '')))}</b>",
+                body_style
+            ))
+            story.append(safe_paragraph(place.get("description", "")))
+            story.append(safe_paragraph(
+                f"{place.get('type', 'Discovery')} | "
+                f"{place.get('area', '')}",
+                small_style
+            ))
+            story.append(Spacer(1, 3 * mm))
+
+    # Accommodation recommendations
+    if isinstance(stays, list) and stays:
+        add_section_heading("Stays to Explore")
+
+        for stay in stays:
+            if not isinstance(stay, dict):
+                continue
+
+            story.append(Paragraph(
+                f"<b>{escape(str(stay.get('name', '')))}</b>",
+                body_style
+            ))
+            story.append(safe_paragraph(stay.get("best_for", "")))
+            story.append(safe_paragraph(
+                f"{stay.get('type', '')} | {stay.get('area', '')}",
+                small_style
+            ))
+
+            if stay.get("url"):
+                story.append(safe_paragraph(
+                    f"Explore: {stay['url']}",
+                    small_style
+                ))
+
+            story.append(Spacer(1, 3 * mm))
+
+    # Footer note
+    story.append(Spacer(1, 10 * mm))
+    story.append(safe_paragraph(
+        "Travel thoughtfully. Support local businesses. Leave room for "
+        "unexpected discoveries.",
+        small_style
+    ))
+
+    def add_page_number(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.setFillColor(colors.HexColor("#7A8790"))
+        canvas.drawString(20 * mm, 12 * mm, "WAYWISE. | Your Travel Journal")
+        canvas.drawRightString(
+            A4[0] - 20 * mm,
+            12 * mm,
+            f"Page {doc.page}"
+        )
+        canvas.restoreState()
+
+    document.build(
+        story,
+        onFirstPage=add_page_number,
+        onLaterPages=add_page_number
+    )
+
+    pdf_buffer.seek(0)
+
+    filename = (
+        re.sub(r"[^a-zA-Z0-9-]+", "-", destination).strip("-").lower()
+        or "trip"
+    )
+
+    return send_file(
+        pdf_buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"waywise-{filename}-itinerary.pdf"
     )
 
 

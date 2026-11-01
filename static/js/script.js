@@ -1,33 +1,37 @@
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".budget-fill[data-width]").forEach((bar) => {
-    const width = Number.parseFloat(bar.dataset.width);
+document.addEventListener("DOMContentLoaded", function () {
+  // =========================================
+  // 1. BUDGET PROGRESS BARS
+  // =========================================
 
-    if (Number.isFinite(width)) {
-      bar.style.width = `${Math.max(0, Math.min(width, 100))}%`;
-    }
+  document.querySelectorAll(".budget-fill[data-width]").forEach((fill) => {
+    fill.style.width = `${fill.dataset.width}%`;
   });
-  // -----------------------------------------
-  // THEME TOGGLE
-  // -----------------------------------------
+
+  // =========================================
+  // 2. THEME TOGGLE
+  // =========================================
+
   const themeToggle = document.getElementById("theme-toggle");
-  const root = document.documentElement;
-  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  const html = document.documentElement;
 
-  function applyTheme(theme) {
-    root.setAttribute("data-theme", theme);
+  function setTheme(theme) {
+    html.dataset.theme = theme;
 
-    if (themeColorMeta) {
-      themeColorMeta.setAttribute(
-        "content",
-        theme === "dark" ? "#171a20" : "#f7f9fc",
-      );
+    try {
+      localStorage.setItem("waywise-theme", theme);
+    } catch (error) {}
+
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+
+    if (metaTheme) {
+      metaTheme.content = theme === "dark" ? "#171a20" : "#f5f7f8";
     }
 
     if (themeToggle) {
-      const nextTheme = theme === "dark" ? "light" : "dark";
-      themeToggle.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
-      themeToggle.setAttribute("title", `Switch to ${nextTheme} mode`);
-      themeToggle.setAttribute("aria-pressed", String(theme === "light"));
+      themeToggle.setAttribute(
+        "aria-label",
+        theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+      );
     }
   }
 
@@ -37,301 +41,670 @@ document.addEventListener("DOMContentLoaded", () => {
     savedTheme = localStorage.getItem("waywise-theme") || "dark";
   } catch (error) {}
 
-  applyTheme(savedTheme);
+  setTheme(savedTheme);
 
   if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      const currentTheme = root.getAttribute("data-theme") || "dark";
-      const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    themeToggle.addEventListener("click", function () {
+      const nextTheme = html.dataset.theme === "dark" ? "light" : "dark";
 
-      applyTheme(nextTheme);
-
-      try {
-        localStorage.setItem("waywise-theme", nextTheme);
-      } catch (error) {}
+      setTheme(nextTheme);
     });
   }
 
-  // -----------------------------------------
-  // MAKE IT CHEAPER
-  // -----------------------------------------
+  // =========================================
+  // 3. MAKE IT CHEAPER
+  // =========================================
 
   const savingOptions = document.querySelectorAll(".saving-option");
   const potentialSavings = document.getElementById("potential-savings");
-  const revisedBudget = document.getElementById("revised-budget");
-  const savingsTripData = document.getElementById("trip-data");
+  const revisedBudgetElement = document.getElementById("revised-budget");
+  const applyButton = document.getElementById("apply-changes");
+  const undoButton = document.getElementById("undo-changes");
 
-  if (
-    savingOptions.length > 0 &&
-    potentialSavings &&
-    revisedBudget &&
-    savingsTripData
-  ) {
-    const originalBudget =
-      Number.parseFloat(savingsTripData.dataset.budget) || 0;
+  const tripData = document.getElementById("trip-data");
 
-    const currency = (amount) =>
-      "₹" + Math.round(amount).toLocaleString("en-IN");
+  let changesApplied = false;
+
+  if (savingOptions.length && tripData) {
+    const originalTotal = Number(tripData.dataset.budget) || 0;
+
+    const originalCategories = {};
+
+    document.querySelectorAll(".budget-category").forEach((category) => {
+      const name = category
+        .querySelector(".budget-category-heading span")
+        ?.textContent.trim();
+
+      const amountText =
+        category.querySelector(".budget-category-heading strong")
+          ?.textContent || "0";
+
+      if (name) {
+        originalCategories[name] =
+          Number(amountText.replace(/[^\d.]/g, "")) || 0;
+      }
+    });
+
+    function getSelectedAlternatives() {
+      return Array.from(savingOptions).filter((option) => option.checked);
+    }
+
+    function getSavings() {
+      return getSelectedAlternatives().reduce((total, option) => {
+        return total + (Number(option.dataset.savings) || 0);
+      }, 0);
+    }
 
     function updateSavings() {
-      let totalSavings = 0;
+      const savings = getSavings();
+      const revised = Math.max(0, originalTotal - savings);
 
-      savingOptions.forEach((option) => {
-        if (option.checked) {
-          const saving = Number.parseFloat(option.dataset.savings) || 0;
+      if (potentialSavings) {
+        potentialSavings.textContent = `₹${Math.round(savings).toLocaleString("en-IN")}`;
+      }
 
-          if (Number.isFinite(saving) && saving > 0) {
-            totalSavings += saving;
-          }
-        }
+      if (revisedBudgetElement) {
+        revisedBudgetElement.textContent = `₹${Math.round(revised).toLocaleString("en-IN")}`;
+      }
+    }
+
+    function updateCategory(name, amount, total) {
+      const category = Array.from(
+        document.querySelectorAll(".budget-category"),
+      ).find((item) => {
+        return (
+          item
+            .querySelector(".budget-category-heading span")
+            ?.textContent.trim() === name
+        );
       });
 
-      // Savings cannot exceed the original trip budget.
-      totalSavings = Math.min(totalSavings, originalBudget);
+      if (!category) return;
 
-      const newBudget = originalBudget - totalSavings;
+      const amountElement = category.querySelector(
+        ".budget-category-heading strong",
+      );
 
-      potentialSavings.textContent = currency(totalSavings);
-      revisedBudget.textContent = currency(newBudget);
+      const fill = category.querySelector(".budget-fill");
+
+      if (amountElement) {
+        amountElement.textContent = `₹${Math.round(amount).toLocaleString("en-IN")}`;
+      }
+
+      if (fill) {
+        const percentage = total > 0 ? (amount / total) * 100 : 0;
+        fill.style.width = `${percentage}%`;
+      }
+    }
+
+    function getSelectedAccommodation() {
+      const selected = getSelectedAlternatives().find((option) => {
+        return option.dataset.category?.toLowerCase() === "accommodation";
+      });
+
+      if (!selected) return null;
+
+      const name = selected.dataset.alternative.toLowerCase();
+
+      if (name.includes("hostel")) return "hostel";
+      if (
+        name.includes("homestay") ||
+        name.includes("guesthouse") ||
+        name.includes("guest house")
+      )
+        return "homestay";
+      if (name.includes("hotel")) return "hotel";
+
+      return null;
+    }
+
+    async function updateStayRecommendations(accommodation) {
+      const stayGrid = document.getElementById("stay-grid");
+
+      if (!stayGrid || !accommodation) return;
+
+      try {
+        const destination = tripData.dataset.destination;
+
+        const response = await fetch(
+          `/get-stays?destination=${encodeURIComponent(destination)}&accommodation=${encodeURIComponent(accommodation)}`,
+        );
+
+        if (!response.ok) {
+          throw new Error("Could not load stays.");
+        }
+
+        const result = await response.json();
+
+        stayGrid.replaceChildren();
+
+        if (!result.stays || !result.stays.length) {
+          const message = document.createElement("p");
+          message.textContent =
+            "No stays match this accommodation preference yet.";
+          stayGrid.appendChild(message);
+          return;
+        }
+
+        result.stays.forEach((stay) => {
+          const card = document.createElement("article");
+          card.className = "recommendation-card";
+
+          const tag = document.createElement("span");
+          tag.className = "recommendation-tag";
+          tag.textContent = stay.type || "";
+
+          const heading = document.createElement("h3");
+          heading.textContent = stay.name || "";
+
+          const description = document.createElement("p");
+          description.textContent = stay.best_for || "";
+
+          const meta = document.createElement("div");
+          meta.className = "recommendation-meta";
+
+          const area = document.createElement("span");
+          area.textContent = stay.area || "";
+          meta.appendChild(area);
+
+          const link = document.createElement("a");
+          link.href = stay.url || "#";
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "Explore stay ↗";
+
+          card.append(tag, heading, description, meta, link);
+          stayGrid.appendChild(card);
+        });
+
+        tripData.dataset.accommodation = accommodation;
+      } catch (error) {
+        console.error("Stay update error:", error);
+      }
     }
 
     savingOptions.forEach((option) => {
       option.addEventListener("change", updateSavings);
     });
 
+    if (applyButton) {
+      applyButton.addEventListener("click", async function () {
+        const savings = getSavings();
+        const revised = Math.max(0, originalTotal - savings);
+
+        const revisedCategories = { ...originalCategories };
+
+        getSelectedAlternatives().forEach((option) => {
+          const category = option.dataset.category;
+          const saving = Number(option.dataset.savings) || 0;
+
+          const matchingCategory = Object.keys(revisedCategories).find(
+            (name) => name.toLowerCase() === category.toLowerCase(),
+          );
+
+          if (matchingCategory) {
+            revisedCategories[matchingCategory] = Math.max(
+              0,
+              revisedCategories[matchingCategory] - saving,
+            );
+          }
+        });
+
+        Object.entries(revisedCategories).forEach(([name, amount]) => {
+          updateCategory(name, amount, revised);
+        });
+
+        if (revisedBudgetElement) {
+          revisedBudgetElement.textContent = `₹${Math.round(revised).toLocaleString("en-IN")}`;
+        }
+
+        const newAccommodation = getSelectedAccommodation();
+
+        if (newAccommodation) {
+          await updateStayRecommendations(newAccommodation);
+        }
+
+        changesApplied = true;
+      });
+    }
+
+    if (undoButton) {
+      undoButton.addEventListener("click", async function () {
+        savingOptions.forEach((option) => {
+          option.checked = false;
+        });
+
+        Object.entries(originalCategories).forEach(([name, amount]) => {
+          updateCategory(name, amount, originalTotal);
+        });
+
+        if (revisedBudgetElement) {
+          revisedBudgetElement.textContent = `₹${Math.round(originalTotal).toLocaleString("en-IN")}`;
+        }
+
+        if (potentialSavings) {
+          potentialSavings.textContent = "₹0";
+        }
+
+        await updateStayRecommendations(tripData.dataset.accommodation);
+
+        changesApplied = false;
+      });
+    }
+
     updateSavings();
   }
 
-  // -----------------------------------------
-  // INTERACTIVE TRAVEL JOURNAL
-  // -----------------------------------------
-  const dataElement = document.getElementById("itinerary-data");
-  const tripData = document.getElementById("trip-data");
-  const leftPage = document.getElementById("left-page");
-  const rightPage = document.getElementById("right-page");
-  const nextButton = document.querySelector(".right-arrow");
-  const previousButton = document.querySelector(".left-arrow");
-  const spreadIndicator = document.getElementById("spread-indicator");
-  const resetButton = document.getElementById("reset-itinerary");
+  // =========================================
+  // 4. INTERACTIVE TRAVEL NOTEBOOK
+  // =========================================
 
-  // Homepage and other pages do not contain the notebook.
-  if (!dataElement || !tripData || !leftPage || !rightPage) return;
+  const itineraryElement = document.getElementById("itinerary-data");
+  const notebook = document.querySelector(".notebook");
 
-  let itinerary;
+  if (itineraryElement && notebook && tripData) {
+    let itinerary = JSON.parse(itineraryElement.textContent);
 
-  try {
-    itinerary = JSON.parse(dataElement.textContent);
-  } catch (error) {
-    console.error("Could not read the itinerary data.", error);
-    return;
-  }
+    const leftPage = document.getElementById("left-page");
+    const rightPage = document.getElementById("right-page");
 
-  const destination = tripData.dataset.destination || "Your destination";
-  const days = Number.parseInt(tripData.dataset.days, 10) || 1;
-  const travellers = Number.parseInt(tripData.dataset.travellers, 10) || 1;
-  const budget = Number.parseInt(tripData.dataset.budget, 10) || 0;
+    const previousButton = document.querySelector(".left-arrow");
+    const nextButton = document.querySelector(".right-arrow");
 
-  const storageKey = `waywise-edits-${destination}-${days}`;
+    const indicator = document.getElementById("spread-indicator");
+    const resetButton = document.getElementById("reset-itinerary");
 
-  function escapeHTML(value) {
-    return String(value).replace(/[&<>"']/g, (character) => {
-      const entities = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      };
+    const destination = tripData.dataset.destination;
+    const days = tripData.dataset.days;
 
-      return entities[character];
-    });
-  }
+    const storageKey = `waywise-edits-${destination}-${days}`;
 
-  function loadEdits() {
-    try {
-      const saved = localStorage.getItem(storageKey);
+    let currentSpread = 0;
 
-      if (saved) {
-        const edits = JSON.parse(saved);
+    function escapeHTML(value) {
+      return String(value ?? "").replace(
+        /[&<>"']/g,
+        (char) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          })[char],
+      );
+    }
+
+    function loadEdits() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
 
         itinerary.forEach((day, dayIndex) => {
-          const savedDay = edits[dayIndex];
-
-          if (!savedDay) return;
-
           day.activities.forEach((activity, activityIndex) => {
-            const replacement = savedDay[activityIndex];
+            const key = `${dayIndex}-${activityIndex}`;
 
-            if (typeof replacement === "string") {
-              activity.activity = replacement;
+            if (saved[key] !== undefined) {
+              activity.activity = saved[key];
             }
           });
         });
+      } catch (error) {
+        console.error("Could not load itinerary edits:", error);
       }
-    } catch (error) {
-      console.warn("Saved itinerary edits could not be loaded.", error);
     }
-  }
 
-  function saveEdits() {
-    try {
-      const edits = itinerary.map((day) =>
-        day.activities.map((activity) => activity.activity),
-      );
+    function saveEdits() {
+      const saved = {};
 
-      localStorage.setItem(storageKey, JSON.stringify(edits));
-    } catch (error) {
-      console.warn("Your edits could not be saved in this browser.", error);
+      itinerary.forEach((day, dayIndex) => {
+        day.activities.forEach((activity, activityIndex) => {
+          saved[`${dayIndex}-${activityIndex}`] = activity.activity;
+        });
+      });
+
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+      } catch (error) {
+        console.error("Could not save itinerary edits:", error);
+      }
     }
-  }
 
-  function createDayHTML(day) {
-    const activitiesHTML = day.activities
-      .map(
-        (activity, index) => `
-      <div class="day-section">
-        <h3>${escapeHTML(activity.time)}</h3>
-        <p
-          class="editable-activity"
-          contenteditable="true"
-          role="textbox"
-          aria-label="Edit ${escapeHTML(activity.time)} activity for day ${day.day}"
-          data-day="${day.day - 1}"
-          data-activity="${index}"
-          spellcheck="true"
-        >${escapeHTML(activity.activity)}</p>
-      </div>
-    `,
-      )
-      .join("");
+    function createDayHTML(day, dayIndex) {
+      let html = `
+                <div class="notebook-day">
+                    <span class="notebook-day-label">DAY ${escapeHTML(day.day)}</span>
+                    <h2>${escapeHTML(day.title)}</h2>
+                    <div class="notebook-activities">
+            `;
 
-    return `
-      <span class="journal-day-label">YOUR TRAVEL JOURNAL</span>
-      <h2>Day ${day.day}</h2>
-      <p class="day-subtitle">${escapeHTML(day.title)}</p>
-      ${activitiesHTML}
-      <div class="notebook-note">
-        <p><strong>WayWise tip:</strong> ${escapeHTML(day.tip)}</p>
-      </div>
-    `;
-  }
+      day.activities.forEach((activity, activityIndex) => {
+        html += `
+                    <div class="notebook-activity">
+                        <span class="activity-time">
+                            ${escapeHTML(activity.time)}
+                        </span>
+                        <p
+                            class="editable-activity"
+                            contenteditable="true"
+                            data-day="${dayIndex}"
+                            data-activity="${activityIndex}"
+                            spellcheck="true"
+                        >${escapeHTML(activity.activity)}</p>
+                    </div>
+                `;
+      });
 
-  function createOverviewHTML() {
-    return `
-      <span class="journal-day-label">THE JOURNEY STARTS HERE</span>
-      <h2>Your Journey Begins</h2>
-      <p>A little planning. A lot of discovering.</p>
-      <div class="notebook-note">
-        <p><strong>Destination:</strong> ${escapeHTML(destination)}</p>
-        <p><strong>Travellers:</strong> ${travellers}</p>
-        <p><strong>Duration:</strong> ${days} day${days === 1 ? "" : "s"}</p>
-        <p><strong>Total budget:</strong> ₹${budget.toLocaleString("en-IN")}</p>
-      </div>
-      <p class="day-subtitle">
-        Built around your preferences. Ready for you to make it your own.
-      </p>
-    `;
-  }
+      html += `</div>`;
 
-  loadEdits();
+      if (day.tip) {
+        html += `
+                    <div class="notebook-note">
+                        <strong>WayWise tip</strong>
+                        <p>${escapeHTML(day.tip)}</p>
+                    </div>
+                `;
+      }
 
-  // First spread is the overview and day one.
-  // Following spreads show two consecutive trip days.
-  const spreads = [
-    {
-      left: createOverviewHTML(),
-      right: createDayHTML(itinerary[0]),
-    },
-  ];
+      html += `</div>`;
 
-  for (let index = 1; index < itinerary.length; index += 2) {
+      return html;
+    }
+
+    function createOverviewHTML() {
+      return `
+                <div class="notebook-cover">
+                    <span class="section-kicker">WAYWISE TRAVEL JOURNAL</span>
+                    <h2>Your Journey Begins</h2>
+                    <p>Your personalised travel plan for ${escapeHTML(destination)}.</p>
+
+                    <div class="notebook-note">
+                        <p><strong>Destination:</strong> ${escapeHTML(destination)}</p>
+                        <p><strong>Duration:</strong> ${escapeHTML(days)} days</p>
+                        <p><strong>Travellers:</strong> ${escapeHTML(tripData.dataset.travellers)}</p>
+                        <p><strong>Budget:</strong> ₹${Number(tripData.dataset.budget).toLocaleString("en-IN")}</p>
+                    </div>
+                </div>
+            `;
+    }
+
+    const spreads = [];
+
     spreads.push({
-      left: createDayHTML(itinerary[index]),
-      right: itinerary[index + 1]
-        ? createDayHTML(itinerary[index + 1])
+      left: createOverviewHTML(),
+      right: itinerary.length
+        ? createDayHTML(itinerary[0], 0)
         : `
-          <span class="journal-day-label">UNTIL NEXT TIME</span>
-          <h2>Journey Complete</h2>
-          <p>Leave room for the unexpected.</p>
-          <div class="notebook-note">
-            <p>Keep your favourite memories, support local businesses, and travel thoughtfully.</p>
-          </div>
-        `,
+                <h2>Your journey awaits</h2>
+            `,
+      label: "Your trip overview",
     });
-  }
 
-  let currentSpread = 0;
+    for (let i = 1; i < itinerary.length; i += 2) {
+      spreads.push({
+        left: createDayHTML(itinerary[i], i),
+        right: itinerary[i + 1]
+          ? createDayHTML(itinerary[i + 1], i + 1)
+          : `
+                        <div class="notebook-cover">
+                            <h2>Journey Complete</h2>
+                            <p>May your next discovery be just around the corner.</p>
+                        </div>
+                    `,
+        label: `Days ${i + 1}–${Math.min(i + 2, itinerary.length)}`,
+      });
+    }
 
-  function showSpread() {
-    leftPage.innerHTML = spreads[currentSpread].left;
-    rightPage.innerHTML = spreads[currentSpread].right;
+    function showSpread() {
+      const spread = spreads[currentSpread];
+
+      leftPage.innerHTML = spread.left;
+      rightPage.innerHTML = spread.right;
+
+      if (indicator) {
+        indicator.textContent = spread.label;
+      }
+
+      if (previousButton) {
+        previousButton.disabled = currentSpread === 0;
+      }
+
+      if (nextButton) {
+        nextButton.disabled = currentSpread === spreads.length - 1;
+      }
+    }
+
+    loadEdits();
+
+    // Rebuild spreads after loading saved edits
+    spreads.length = 0;
+
+    spreads.push({
+      left: createOverviewHTML(),
+      right: itinerary.length ? createDayHTML(itinerary[0], 0) : "",
+      label: "Your trip overview",
+    });
+
+    for (let i = 1; i < itinerary.length; i += 2) {
+      spreads.push({
+        left: createDayHTML(itinerary[i], i),
+        right: itinerary[i + 1]
+          ? createDayHTML(itinerary[i + 1], i + 1)
+          : `
+                        <div class="notebook-cover">
+                            <h2>Journey Complete</h2>
+                            <p>May your next discovery be just around the corner.</p>
+                        </div>
+                    `,
+        label: `Days ${i + 1}–${Math.min(i + 2, itinerary.length)}`,
+      });
+    }
 
     if (previousButton) {
-      previousButton.disabled = currentSpread === 0;
+      previousButton.addEventListener("click", function () {
+        if (currentSpread > 0) {
+          currentSpread--;
+          showSpread();
+        }
+      });
     }
 
     if (nextButton) {
-      nextButton.disabled = currentSpread === spreads.length - 1;
+      nextButton.addEventListener("click", function () {
+        if (currentSpread < spreads.length - 1) {
+          currentSpread++;
+          showSpread();
+        }
+      });
     }
 
-    if (spreadIndicator) {
-      spreadIndicator.textContent =
-        currentSpread === 0
-          ? "Trip overview · Day 1"
-          : `Journal spread ${currentSpread + 1} of ${spreads.length}`;
-    }
-  }
+    notebook.addEventListener("input", function (event) {
+      const target = event.target;
 
-  if (nextButton) {
-    nextButton.addEventListener("click", () => {
-      if (currentSpread < spreads.length - 1) {
-        currentSpread += 1;
-        showSpread();
+      if (!target.classList.contains("editable-activity")) return;
+
+      const dayIndex = Number(target.dataset.day);
+      const activityIndex = Number(target.dataset.activity);
+
+      const editedText = target.textContent.trim();
+
+      if (
+        itinerary[dayIndex] &&
+        itinerary[dayIndex].activities[activityIndex]
+      ) {
+        itinerary[dayIndex].activities[activityIndex].activity = editedText;
+
+        saveEdits();
       }
     });
-  }
 
-  if (previousButton) {
-    previousButton.addEventListener("click", () => {
-      if (currentSpread > 0) {
-        currentSpread -= 1;
-        showSpread();
-      }
-    });
-  }
+    if (resetButton) {
+      resetButton.addEventListener("click", function () {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (error) {}
 
-  // Save edited activity text into the current itinerary.
-  document.querySelector(".notebook").addEventListener("input", (event) => {
-    const target = event.target.closest(".editable-activity");
-
-    if (!target) return;
-
-    const dayIndex = Number.parseInt(target.dataset.day, 10);
-    const activityIndex = Number.parseInt(target.dataset.activity, 10);
-
-    if (
-      !itinerary[dayIndex] ||
-      !itinerary[dayIndex].activities[activityIndex]
-    ) {
-      return;
+        window.location.reload();
+      });
     }
 
-    // Store plain text so pasted HTML cannot become page markup.
-    const editedText = target.innerText.trim();
+    showSpread();
+  }
 
-    itinerary[dayIndex].activities[activityIndex].activity = editedText;
-    saveEdits();
-  });
+  // =========================================
+  // 5. DOWNLOAD ITINERARY AS PDF
+  // =========================================
 
-  if (resetButton) {
-    resetButton.addEventListener("click", () => {
+  const downloadButton = document.getElementById("download-pdf");
+
+  if (downloadButton && tripData && itineraryElement) {
+    downloadButton.addEventListener("click", async function () {
+      const originalText = downloadButton.textContent;
+
       try {
-        localStorage.removeItem(storageKey);
-      } catch (error) {}
+        downloadButton.disabled = true;
+        downloadButton.textContent = "Preparing PDF...";
 
-      window.location.reload();
+        const destination = tripData.dataset.destination;
+        const days = tripData.dataset.days;
+
+        // Read itinerary, including saved edits
+        const itinerary = JSON.parse(itineraryElement.textContent);
+
+        const storageKey = `waywise-edits-${destination}-${days}`;
+
+        const savedEdits = JSON.parse(localStorage.getItem(storageKey) || "{}");
+
+        itinerary.forEach((day, dayIndex) => {
+          day.activities.forEach((activity, activityIndex) => {
+            const key = `${dayIndex}-${activityIndex}`;
+
+            if (savedEdits[key] !== undefined) {
+              activity.activity = savedEdits[key];
+            }
+          });
+        });
+
+        // Read current budget
+        const originalBudget = Number(tripData.dataset.budget) || 0;
+
+        const revisedBudgetText =
+          document.getElementById("revised-budget")?.textContent || "0";
+
+        const revisedBudget =
+          Number(revisedBudgetText.replace(/[^\d.]/g, "")) || originalBudget;
+
+        const savings = Math.max(0, originalBudget - revisedBudget);
+
+        // Read budget categories
+        const budgetCategories = [];
+
+        document.querySelectorAll(".budget-category").forEach((category) => {
+          const name = category
+            .querySelector(".budget-category-heading span")
+            ?.textContent.trim();
+
+          const amountText =
+            category.querySelector(".budget-category-heading strong")
+              ?.textContent || "0";
+
+          const amount = Number(amountText.replace(/[^\d.]/g, "")) || 0;
+
+          if (name) {
+            budgetCategories.push({
+              name: name,
+              amount: amount,
+            });
+          }
+        });
+
+        // Read destination recommendations only
+        const places = [];
+
+        document
+          .querySelectorAll(
+            ".recommendation-grid:not(.stay-grid) .recommendation-card",
+          )
+          .forEach((card) => {
+            places.push({
+              name:
+                card.querySelector("h3, h4, strong")?.textContent.trim() || "",
+              description: card.querySelector("p")?.textContent.trim() || "",
+              type: "Destination discovery",
+              area: "",
+            });
+          });
+
+        // Read current accommodation recommendations
+        const stays = [];
+
+        document
+          .querySelectorAll("#stay-grid .recommendation-card")
+          .forEach((card) => {
+            stays.push({
+              name:
+                card.querySelector("h3, h4, strong")?.textContent.trim() || "",
+              best_for: card.querySelector("p")?.textContent.trim() || "",
+              type:
+                card.querySelector(".recommendation-tag")?.textContent.trim() ||
+                "",
+              area:
+                card
+                  .querySelector(".recommendation-meta span")
+                  ?.textContent.trim() || "",
+              url: card.querySelector("a")?.href || "",
+            });
+          });
+
+        // Prepare data for Flask
+        const payload = {
+          destination: destination,
+          days: days,
+          travellers: tripData.dataset.travellers,
+          budget: originalBudget,
+          savings: savings,
+          accommodation: tripData.dataset.accommodation,
+          pace: tripData.dataset.pace || "Not specified",
+          itinerary: itinerary,
+          budget_categories: budgetCategories,
+          places: places,
+          stays: stays,
+        };
+
+        // Generate PDF
+        const response = await fetch("/download-itinerary", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Could not generate the PDF.");
+        }
+
+        const pdfBlob = await response.blob();
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+
+        const link = document.createElement("a");
+        link.href = pdfUrl;
+        link.download = `WayWise-${destination.replace(/\s+/g, "-")}-Itinerary.pdf`;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(pdfUrl);
+      } catch (error) {
+        console.error("PDF download error:", error);
+
+        alert(
+          "Sorry! We couldn't generate your itinerary PDF. Please try again.",
+        );
+      } finally {
+        downloadButton.disabled = false;
+        downloadButton.textContent = originalText;
+      }
     });
   }
-
-  showSpread();
 });

@@ -121,54 +121,68 @@
   <section class="cheaper-section">
     <div class="section-heading">
       <span class="section-kicker">TRAVEL SMARTER</span>
-
       <h2>Make It Cheaper</h2>
-
       <p>
-        Explore destination-specific alternatives to reduce your estimated trip
-        cost without missing out on your journey.
+        Choose budget-friendly alternatives to reduce your estimated trip cost
+        without missing out on your journey.
       </p>
     </div>
 
     {% if budget_alternatives %}
 
     <div class="cheaper-options">
-      {% for alternative in budget_alternatives %}
+      {% for category, alternatives in budget_alternatives|groupby('category')
+      %}
 
-      <label class="cheaper-option">
-        <input
-          type="radio"
-          class="saving-option"
-          name="saving-{{ alternative.category|lower|replace(' ', '-')|replace('&', 'and') }}"
-          data-savings="{{ alternative.estimated_saving }}"
-          value="{{ alternative.alternative_name }}"
-        />
-
-        <div>
-          <span class="recommendation-tag"> {{ alternative.category }} </span>
-
-          <h3>{{ alternative.alternative_name }}</h3>
-
-          <p>{{ alternative.description }}</p>
-
-          <strong>
-            Estimated saving: ₹{{
-            "{:,}".format(alternative.estimated_saving|int) }}
-          </strong>
+      <div class="cheaper-option">
+        <div class="cheaper-option-header">
+          <span class="cheaper-category">{{ category }}</span>
+          <span class="cheaper-saving">Choose an alternative</span>
         </div>
-      </label>
+
+        {% for alternative in alternatives %} {% if not
+        alternative.alternative_name.startswith('Affordable ') %}
+
+        <label class="cheaper-alternative">
+          <input
+            type="radio"
+            class="saving-option"
+            name="saving-{{ category|lower|replace(' ', '-')|replace('&', 'and') }}"
+            data-savings="{{ alternative.estimated_saving }}"
+            data-category="{{ category }}"
+            data-alternative="{{ alternative.alternative_name }}"
+            data-description="{{ alternative.description }}"
+            value="{{ alternative.alternative_name }}"
+          />
+
+          <div class="alternative-details">
+            <strong>{{ alternative.alternative_name }}</strong>
+            <p>{{ alternative.description }}</p>
+            <span>
+              Save approximately ₹{{ alternative.estimated_saving|int }}
+            </span>
+          </div>
+        </label>
+
+        {% endif %} {% endfor %}
+      </div>
 
       {% endfor %}
     </div>
 
     {% else %}
 
-    <p>
-      No destination-specific savings suggestions are available yet. Check back
-      as we expand our recommendations.
-    </p>
+    <p>No budget alternatives are available for this destination yet.</p>
 
     {% endif %}
+
+    <div class="cheaper-actions">
+      <button type="button" id="apply-changes" class="hero-btn">
+        Apply Changes
+      </button>
+
+      <button type="button" id="undo-changes" class="hero-btn">Undo</button>
+    </div>
 
     <div class="cheaper-result">
       <div>
@@ -178,7 +192,6 @@
 
       <div>
         <span>Revised estimated budget</span>
-
         <strong id="revised-budget">
           ₹{{ "{:,}".format(budget_breakdown.total|int) }}
         </strong>
@@ -187,7 +200,7 @@
 
     <p class="budget-disclaimer">
       Savings are approximate database estimates, not live prices or guaranteed
-      discounts. Select one alternative per category.
+      discounts.
     </p>
   </section>
   <!-- END MAKE IT CHEAPER -->
@@ -245,7 +258,7 @@
       </div>
     </div>
 
-    <div class="recommendation-grid stay-grid">
+    <div class="recommendation-grid stay-grid" id="stay-grid">
       {% for stay in stay_recommendations %}
 
       <article class="recommendation-card">
@@ -343,11 +356,16 @@
     <div class="journal-controls">
       <span id="spread-indicator" aria-live="polite"> Your trip overview </span>
 
-      <button type="button" class="hero-btn" id="reset-itinerary">
-        Reset edits
-      </button>
-    </div>
+      <div class="journal-actions">
+        <button type="button" class="hero-btn" id="download-pdf">
+          Download PDF ↓
+        </button>
 
+        <button type="button" class="hero-btn" id="reset-itinerary">
+          Reset edits
+        </button>
+      </div>
+    </div>
     <p class="edit-hint">
       Tip: click an activity's text to edit it. Changes are saved locally in
       this browser.
@@ -365,6 +383,8 @@
     data-days="{{ days }}"
     data-travellers="{{ travellers }}"
     data-budget="{{ budget }}"
+    data-accommodation="{{ accommodation }}"
+    data-pace="{{ pace }}"
   ></div>
 </section>
 {% endblock %}
