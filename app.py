@@ -1,11 +1,47 @@
+
 from flask import Flask, render_template, request
-from math import ceil
+import sqlite3
+import os
+import re
+from urllib.parse import quote_plus
 
 app = Flask(__name__)
 
-# -----------------------------------------
-# WAYWISE: DESTINATION STARTER GUIDE
-# -----------------------------------------
+# =========================================
+# DATABASE CONNECTION
+# =========================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, "database", "waywise.db")
+
+
+def get_db_connection():
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+# =========================================
+# DESTINATION NAME NORMALISATION
+# =========================================
+
+DESTINATION_ALIASES = {
+    "kerela": "kerala",
+    "kerala": "kerala",
+}
+
+
+def normalize_destination(destination):
+    """Standardise destination names and common spelling variations."""
+    name = (destination or "").split(",")[0].strip().lower()
+    name = DESTINATION_ALIASES.get(name, name)
+    return re.sub(r"[^a-z0-9]+", "-", name).strip("-")
+
+
+# =========================================
+# DESTINATION STARTER GUIDES
+# =========================================
 
 DESTINATIONS = {
     "manali": {
@@ -152,7 +188,7 @@ DESTINATIONS = {
         "afternoon": [
             "Try a local vegetarian meal.",
             "Explore a nearby nature spot.",
-            "Consider a reputable, appropriately supervised adventure activity.",
+            "Consider a suitable supervised adventure activity.",
             "Discover local shops and neighbourhoods.",
             "Keep the afternoon flexible for rest.",
         ],
@@ -163,6 +199,7 @@ DESTINATIONS = {
         ],
     },
 }
+
 
 DEFAULT_DESTINATION = {
     "region": "Local discovery",
@@ -188,6 +225,10 @@ DEFAULT_DESTINATION = {
 }
 
 
+# =========================================
+# HELPER FUNCTIONS
+# =========================================
+
 def clean_number(value, default, minimum=1, maximum=30):
     """Convert form input to a safe integer."""
     try:
@@ -198,38 +239,41 @@ def clean_number(value, default, minimum=1, maximum=30):
 
 
 def get_destination_guide(destination):
-    """Find a starter guide using the destination name."""
-    name = destination.strip().lower()
+    """Find a starter guide using the standardised destination name."""
+    name = normalize_destination(destination)
+    return DESTINATIONS.get(name, DEFAULT_DESTINATION)
 
-    for key, guide in DESTINATIONS.items():
-        if key in name:
-            return guide
 
-    return DEFAULT_DESTINATION
-
+# =========================================
+# BUILD DAY-BY-DAY ITINERARY
+# =========================================
 
 def make_itinerary(destination, days, pace, travel_styles):
-    """Build a day-by-day starter itinerary."""
     guide = get_destination_guide(destination)
     itinerary = []
 
-    if pace.lower() == "relaxed":
+    pace = (pace or "balanced").lower()
+    styles = [style.lower() for style in (travel_styles or [])]
+
+    if pace == "relaxed":
         slots = ["morning", "afternoon"]
-    elif pace.lower() == "packed":
-        slots = ["morning", "afternoon", "evening"]
     else:
         slots = ["morning", "afternoon", "evening"]
 
-    styles = [style.lower() for style in travel_styles]
-
     if "adventure" in styles:
-        extra = "Consider a suitable outdoor or adventure activity with a reputable local operator."
+        extra = (
+            "Consider a suitable outdoor or adventure activity "
+            "with a reputable local operator."
+        )
     elif "culture" in styles:
         extra = "Look for a local cultural experience or artisan workshop."
     elif "freedom" in styles:
         extra = "Keep this time flexible and choose what interests you most."
     elif "popular" in styles:
-        extra = "Consider a popular local attraction and check its current visitor information."
+        extra = (
+            "Consider a popular local attraction and check its "
+            "current visitor information."
+        )
     else:
         extra = "Leave some time for a local discovery that catches your interest."
 
@@ -246,19 +290,33 @@ def make_itinerary(destination, days, pace, travel_styles):
         if "evening" in slots:
             activities.append({"time": "Evening", "activity": evening})
 
-        if day == days:
+        if pace == "packed":
+            activities.append({
+                "time": "Flexible extra",
+                "activity": (
+                    "If you still have energy, explore another nearby "
+                    "attraction or local experience."
+                )
+            })
+
+        if day == days and days > 1:
             activities[-1]["activity"] = (
                 "Enjoy a final local meal, leave time for checkout, "
                 "and prepare for your onward journey."
             )
 
+        if days == 1:
+            title = "A Day of First & Last Discoveries"
+        elif day == 1:
+            title = "Arrival & First Discoveries"
+        elif day == days:
+            title = "Departure & Last Memories"
+        else:
+            title = f"Explore {guide['region']}"
+
         itinerary.append({
             "day": day,
-            "title": (
-                "Arrival & First Discoveries" if day == 1
-                else "Departure & Last Memories" if day == days
-                else f"Explore {guide['region']}"
-            ),
+            "title": title,
             "activities": activities,
             "tip": extra,
         })
@@ -266,33 +324,142 @@ def make_itinerary(destination, days, pace, travel_styles):
     return itinerary, guide["region"]
 
 
-def estimate_budget(budget, days, travellers, accommodation, flexibility, emergency):
-    """
-    Produce an illustrative split of the user's total trip budget.
-    This is a planning estimate, not a live quotation.
-    """
+# =========================================
+# FETCH DATABASE RECOMMENDATIONS
+# =========================================
+
+def get_destination_recommendations(destination, accommodation):
+    connection = get_db_connection()
+
+    try:
+        destination_slug = normalize_destination(destination)
+
+        destination_row = connection.execute("""
+            SELECT * FROM destinations
+            WHERE LOWER(name) = ?
+               OR LOWER(slug) = ?
+            LIMIT 1
+        """, (
+            destination_slug.replace("-", " "),
+            destination_slug
+        )).fetchone()
+
+        if destination_row is None:
+            return [], [], []
+
+        destination_id = destination_row["id"]
+
+        # Places
+        places = connection.execute("""
+            SELECT * FROM places
+            WHERE destination_id = ?
+        """, (destination_id,)).fetchall()
+
+        place_recommendations = []
+
+        for place in places:
+            place_name = place["name"]
+
+            place_recommendations.append({
+                "name": place_name,
+                "type": place["category"] or "Discovery",
+                "description": place["description"] or "",
+                "area": place["area"] or "",
+                "kind": place["kind"] or "Local discovery",
+                "url": (
+                    "https://www.google.com/maps/search/?api=1&query="
+                    + quote_plus(f"{place_name} {destination}")
+                )
+            })
+
+        # Accommodation
+        stays = connection.execute("""
+            SELECT * FROM accommodations
+            WHERE destination_id = ?
+        """, (destination_id,)).fetchall()
+
+        stay_recommendations = []
+        accommodation = (accommodation or "homestay").strip().lower()
+
+        for stay in stays:
+            stay_type = (stay["type"] or "").strip().lower()
+
+            if stay_type == accommodation:
+                stay_recommendations.append({
+                    "name": stay["name"],
+                    "type": stay["type"] or "",
+                    "best_for": stay["best_for"] or "",
+                    "area": stay["area"] or "",
+                    "url": stay["url"] or ""
+                })
+
+        # Budget alternatives
+        alternatives = connection.execute("""
+            SELECT * FROM budget_alternatives
+            WHERE destination_id = ?
+        """, (destination_id,)).fetchall()
+
+        budget_alternatives = [
+            {
+                "category": item["category"],
+                "alternative_name": item["alternative_name"],
+                "description": item["description"] or "",
+                "estimated_saving": item["estimated_saving"]
+            }
+            for item in alternatives
+        ]
+
+        return (
+            place_recommendations,
+            stay_recommendations,
+            budget_alternatives
+        )
+
+    finally:
+        connection.close()
+
+
+# =========================================
+# ESTIMATE TRIP BUDGET
+# =========================================
+
+def estimate_budget(
+    budget,
+    days,
+    travellers,
+    accommodation,
+    flexibility,
+    emergency
+):
+    """Produce an illustrative split of the total trip budget."""
+
     total = max(0, budget)
 
-    # Accommodation preference influences the suggested split.
+    accommodation = (accommodation or "homestay").lower()
+    flexibility = (flexibility or "strict").lower()
+    emergency = (emergency or "no").lower()
+
     lodging_share = {
         "hostel": 0.25,
         "homestay": 0.30,
         "hotel": 0.38,
-    }.get(accommodation.lower(), 0.30)
+    }.get(accommodation, 0.30)
 
     food_share = 0.25
     transport_share = 0.20
     activity_share = 0.20
 
-    if flexibility.lower() in ("flexible", "yes", "a little"):
+    if flexibility in ("flexible", "yes", "a little"):
         activity_share += 0.03
         transport_share -= 0.03
 
-    emergency_share = 0.10 if emergency.lower() in ("yes", "true") else 0.05
-    core_total = lodging_share + food_share + transport_share + activity_share
+    emergency_share = 0.10 if emergency in ("yes", "true") else 0.0
+
+    core_total = (
+        lodging_share + food_share + transport_share + activity_share
+    )
     available_for_core = total * (1 - emergency_share)
 
-    # Normalize the categories to the amount remaining after the buffer.
     categories = [
         ("Accommodation", lodging_share),
         ("Food", food_share),
@@ -301,14 +468,14 @@ def estimate_budget(budget, days, travellers, accommodation, flexibility, emerge
     ]
 
     estimates = []
+
     for name, share in categories:
         amount = round(available_for_core * share / core_total)
         estimates.append({"name": name, "amount": amount})
 
     buffer_amount = round(total * emergency_share)
-    allocated = sum(item["amount"] for item in estimates) + buffer_amount
 
-    # Put any rounding difference into the final category so the total matches.
+    allocated = sum(item["amount"] for item in estimates) + buffer_amount
     estimates[-1]["amount"] += total - allocated
 
     per_person = round(total / travellers) if travellers else total
@@ -324,6 +491,10 @@ def estimate_budget(budget, days, travellers, accommodation, flexibility, emerge
         "days": days,
     }
 
+
+# =========================================
+# FLASK ROUTES
+# =========================================
 
 @app.route("/")
 def home():
@@ -341,7 +512,9 @@ def preferences():
         destination = request.form.get("destination", "").strip()
         days = clean_number(request.form.get("days"), 1, 1, 30)
         travellers = clean_number(request.form.get("travellers"), 1, 1, 20)
-        budget = clean_number(request.form.get("budget"), 0, 0, 100000000)
+        budget = clean_number(
+            request.form.get("budget"), 0, 0, 100000000
+        )
 
         if not destination:
             destination = "India"
@@ -354,17 +527,28 @@ def preferences():
             budget=budget,
         )
 
-    return render_template("preferences.html")
+    return render_template(
+        "preferences.html",
+        destination="",
+        days=1,
+        travellers=1,
+        budget=0,
+    )
 
 
 @app.route("/generate-itinerary", methods=["POST"])
 def generate_itinerary():
-    destination = request.form.get("destination", "India").strip() or "India"
+    destination = (
+        request.form.get("destination", "India").strip() or "India"
+    )
+
     days = clean_number(request.form.get("days"), 1, 1, 30)
     travellers = clean_number(request.form.get("travellers"), 1, 1, 20)
-    budget = clean_number(request.form.get("budget"), 0, 0, 100000000)
+    budget = clean_number(
+        request.form.get("budget"), 0, 0, 100000000
+    )
 
-    budget_flexibility = request.form.get("budget_flexibility", "not specified")
+    budget_flexibility = request.form.get("budget_flexibility", "strict")
     emergency_fund = request.form.get("emergency_fund", "no")
     accommodation = request.form.get("accommodation", "homestay")
     pace = request.form.get("pace", "balanced")
@@ -382,139 +566,34 @@ def generate_itinerary():
         budget_flexibility,
         emergency_fund,
     )
-    # Destination-specific recommendations
-    is_manali = "manali" in destination.lower()
 
-    place_recommendations = MANALI_PLACES if is_manali else []
-    stay_recommendations = MANALI_STAYS if is_manali else []
+    (
+        place_recommendations,
+        stay_recommendations,
+        budget_alternatives
+    ) = get_destination_recommendations(destination, accommodation)
 
-    # Filter stays using the user's accommodation preference
-    preferred_type = accommodation.strip().lower()
+    has_recommendations = bool(
+        place_recommendations or stay_recommendations
+    )
 
-    if preferred_type == "hostel":
-        stay_recommendations = [
-        stay for stay in stay_recommendations
-        if stay["type"] == "Hostel"
-    ]
-    elif preferred_type == "homestay":
-        stay_recommendations = [
-        stay for stay in stay_recommendations
-        if stay["type"] == "Homestay"
-    ]
-    elif preferred_type == "hotel":
-        stay_recommendations = [
-        stay for stay in stay_recommendations
-        if stay["type"] == "Hotel"
-    ]
     return render_template(
         "itinerary.html",
+        itinerary=itinerary,
         destination=destination,
+        region=region,
         days=days,
         travellers=travellers,
         budget=budget,
-        budget_flexibility=budget_flexibility,
-        emergency_fund=emergency_fund,
-        accommodation=accommodation,
-        pace=pace,
-        travel_styles=travel_styles,
-        itinerary=itinerary,
-        region=region,
         budget_breakdown=budget_breakdown,
+        pace=pace,
+        accommodation=accommodation,
+        travel_styles=travel_styles,
         place_recommendations=place_recommendations,
         stay_recommendations=stay_recommendations,
-        is_manali=is_manali,
+        budget_alternatives=budget_alternatives,
+        has_recommendations=has_recommendations,
     )
-
-# -----------------------------------------
-# WAYWISE: MANALI PLACE RECOMMENDATIONS
-# -----------------------------------------
-
-MANALI_PLACES = [
-    {
-        "name": "Hadimba Devi Temple",
-        "type": "Culture & heritage",
-        "description": "Explore the distinctive wooden temple surrounded by tall deodar trees.",
-        "area": "Dhungri",
-        "kind": "Popular",
-        "url": "https://www.google.com/maps/search/?api=1&query=Hadimba+Devi+Temple+Manali",
-    },
-    {
-        "name": "Vashisht Village",
-        "type": "Village & culture",
-        "description": "Discover the village temple, traditional surroundings and public hot springs.",
-        "area": "Vashisht",
-        "kind": "Local discovery",
-        "url": "https://www.google.com/maps/search/?api=1&query=Vashisht+Village+Manali",
-    },
-    {
-        "name": "Naggar Castle",
-        "type": "History & architecture",
-        "description": "Explore historic architecture and views across the Kullu Valley.",
-        "area": "Naggar",
-        "kind": "Cultural escape",
-        "url": "https://www.google.com/maps/search/?api=1&query=Naggar+Castle+Himachal+Pradesh",
-    },
-    {
-        "name": "Solang Valley",
-        "type": "Nature & adventure",
-        "description": "Enjoy mountain scenery and check which outdoor activities are available for your visit.",
-        "area": "North of Manali",
-        "kind": "Adventure",
-        "url": "https://www.google.com/maps/search/?api=1&query=Solang+Valley+Manali",
-    },
-    {
-        "name": "Sajla Waterfall",
-        "type": "Nature & short walk",
-        "description": "Explore a greener, quieter waterfall area; check local trail and weather conditions first.",
-        "area": "Sajla",
-        "kind": "Hidden gem",
-        "url": "https://www.google.com/maps/search/?api=1&query=Sajla+Waterfall+Manali",
-    },
-    {
-        "name": "Himalayan Nyingmapa Monastery",
-        "type": "Culture & reflection",
-        "description": "Visit a colourful Buddhist monastery near central Manali and take time to appreciate its art.",
-        "area": "Central Manali",
-        "kind": "Cultural discovery",
-        "url": "https://www.google.com/maps/search/?api=1&query=Himalayan+Nyingmapa+Monastery+Manali",
-    },
-]
-
-# -----------------------------------------
-# WAYWISE: MANALI STAY RECOMMENDATIONS
-# -----------------------------------------
-
-MANALI_STAYS = [
-    {
-        "name": "The Hosteller Manali, Old Manali",
-        "type": "Hostel",
-        "best_for": "Backpackers and social travellers",
-        "area": "Old Manali, Log Huts area",
-        "url": "https://www.google.com/maps/search/?api=1&query=The+Hosteller+Manali+Old+Manali",
-    },
-    {
-        "name": "Manali Woods BnB",
-        "type": "Homestay",
-        "best_for": "Travellers wanting a central base",
-        "area": "Model Town, Siyal",
-        "url": "https://www.google.com/maps/search/?api=1&query=Manali+Woods+BnB",
-    },
-    {
-        "name": "Kropha HomeStay Manali",
-        "type": "Homestay",
-        "best_for": "A homely stay near central Manali",
-        "area": "Siyal, near the Volvo bus stand",
-        "url": "https://www.google.com/maps/search/?api=1&query=Kropha+HomeStay+Manali",
-    },
-    {
-        "name": "Zen Manali by Keekoo Stays",
-        "type": "Hotel",
-        "best_for": "Travellers seeking private rooms or dorm-style options",
-        "area": "Log Huts, Hadimba Temple Road",
-        "url": "https://www.google.com/maps/search/?api=1&query=Zen+Manali+by+Keekoo+Stays",
-    },
-]
-
 
 
 if __name__ == "__main__":

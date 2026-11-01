@@ -53,6 +53,56 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -----------------------------------------
+  // MAKE IT CHEAPER
+  // -----------------------------------------
+
+  const savingOptions = document.querySelectorAll(".saving-option");
+  const potentialSavings = document.getElementById("potential-savings");
+  const revisedBudget = document.getElementById("revised-budget");
+  const savingsTripData = document.getElementById("trip-data");
+
+  if (
+    savingOptions.length > 0 &&
+    potentialSavings &&
+    revisedBudget &&
+    savingsTripData
+  ) {
+    const originalBudget =
+      Number.parseFloat(savingsTripData.dataset.budget) || 0;
+
+    const currency = (amount) =>
+      "₹" + Math.round(amount).toLocaleString("en-IN");
+
+    function updateSavings() {
+      let totalSavings = 0;
+
+      savingOptions.forEach((option) => {
+        if (option.checked) {
+          const saving = Number.parseFloat(option.dataset.savings) || 0;
+
+          if (Number.isFinite(saving) && saving > 0) {
+            totalSavings += saving;
+          }
+        }
+      });
+
+      // Savings cannot exceed the original trip budget.
+      totalSavings = Math.min(totalSavings, originalBudget);
+
+      const newBudget = originalBudget - totalSavings;
+
+      potentialSavings.textContent = currency(totalSavings);
+      revisedBudget.textContent = currency(newBudget);
+    }
+
+    savingOptions.forEach((option) => {
+      option.addEventListener("change", updateSavings);
+    });
+
+    updateSavings();
+  }
+
+  // -----------------------------------------
   // INTERACTIVE TRAVEL JOURNAL
   // -----------------------------------------
   const dataElement = document.getElementById("itinerary-data");

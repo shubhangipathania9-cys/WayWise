@@ -1,12 +1,14 @@
-{% extends "base.html" %} {% block title %}WayWise | Your Itinerary{% endblock%}
-{% block content %}
+{% extends "base.html" %} {% block title %}WayWise | Your Itinerary{% endblock
+%} {% block content %}
 <section class="planning-page">
+  <!-- PAGE HEADER -->
   <div class="planning-header">
     <span class="section-kicker">YOUR JOURNEY, YOUR WAY</span>
     <h1>Your WayWise Itinerary</h1>
     <p>A starting plan for discovering {{ destination }} at your own pace.</p>
   </div>
 
+  <!-- TRIP OVERVIEW -->
   <section class="trip-summary">
     <h2>Trip Overview</h2>
 
@@ -15,14 +17,17 @@
         <span>Destination</span>
         <strong>{{ destination }}</strong>
       </div>
+
       <div>
         <span>Duration</span>
         <strong>{{ days }} days</strong>
       </div>
+
       <div>
         <span>Travellers</span>
         <strong>{{ travellers }}</strong>
       </div>
+
       <div>
         <span>Total budget</span>
         <strong>₹{{ "{:,}".format(budget) }}</strong>
@@ -32,12 +37,14 @@
     <div class="preference-tags">
       <span>{{ accommodation|title }}</span>
       <span>{{ pace|title }} pace</span>
+
       {% for style in travel_styles %}
       <span>{{ style|title }}</span>
       {% endfor %}
     </div>
   </section>
 
+  <!-- BUDGET BREAKDOWN -->
   <section class="budget-section">
     <div class="section-heading">
       <div>
@@ -51,15 +58,17 @@
 
     <div class="budget-total">
       <span>Total trip budget</span>
+
       <strong>₹{{ "{:,}".format(budget_breakdown.total) }}</strong>
+
       <div class="budget-meta">
-        <span
-          >₹{{ "{:,}".format(budget_breakdown.per_person) }} per traveller</span
-        >
-        <span
-          >₹{{ "{:,}".format(budget_breakdown.per_day) }} per day for the
-          group</span
-        >
+        <span>
+          ₹{{ "{:,}".format(budget_breakdown.per_person) }} per traveller
+        </span>
+
+        <span>
+          ₹{{ "{:,}".format(budget_breakdown.per_day) }} per day for the group
+        </span>
       </div>
     </div>
 
@@ -78,6 +87,7 @@
           <div class="budget-fill" data-width="{{ percentage }}"></div>
         </div>
       </div>
+
       {% endfor %} {% set emergency_percentage =
       (budget_breakdown.emergency_buffer / budget_breakdown.total * 100) if
       budget_breakdown.total > 0 else 0 %}
@@ -85,9 +95,10 @@
       <div class="budget-category emergency-category">
         <div class="budget-category-heading">
           <span>Emergency buffer</span>
-          <strong
-            >₹{{ "{:,}".format(budget_breakdown.emergency_buffer) }}</strong
-          >
+
+          <strong>
+            ₹{{ "{:,}".format(budget_breakdown.emergency_buffer) }}
+          </strong>
         </div>
 
         <div class="budget-track">
@@ -105,19 +116,105 @@
       before booking.
     </p>
   </section>
-  {% if is_manali %}
+
+  <!-- MAKE IT CHEAPER -->
+  <section class="cheaper-section">
+    <div class="section-heading">
+      <span class="section-kicker">TRAVEL SMARTER</span>
+
+      <h2>Make It Cheaper</h2>
+
+      <p>
+        Explore destination-specific alternatives to reduce your estimated trip
+        cost without missing out on your journey.
+      </p>
+    </div>
+
+    {% if budget_alternatives %}
+
+    <div class="cheaper-options">
+      {% for alternative in budget_alternatives %}
+
+      <label class="cheaper-option">
+        <input
+          type="radio"
+          class="saving-option"
+          name="saving-{{ alternative.category|lower|replace(' ', '-')|replace('&', 'and') }}"
+          data-savings="{{ alternative.estimated_saving }}"
+          value="{{ alternative.alternative_name }}"
+        />
+
+        <div>
+          <span class="recommendation-tag"> {{ alternative.category }} </span>
+
+          <h3>{{ alternative.alternative_name }}</h3>
+
+          <p>{{ alternative.description }}</p>
+
+          <strong>
+            Estimated saving: ₹{{
+            "{:,}".format(alternative.estimated_saving|int) }}
+          </strong>
+        </div>
+      </label>
+
+      {% endfor %}
+    </div>
+
+    {% else %}
+
+    <p>
+      No destination-specific savings suggestions are available yet. Check back
+      as we expand our recommendations.
+    </p>
+
+    {% endif %}
+
+    <div class="cheaper-result">
+      <div>
+        <span>Potential savings</span>
+        <strong id="potential-savings">₹0</strong>
+      </div>
+
+      <div>
+        <span>Revised estimated budget</span>
+
+        <strong id="revised-budget">
+          ₹{{ "{:,}".format(budget_breakdown.total|int) }}
+        </strong>
+      </div>
+    </div>
+
+    <p class="budget-disclaimer">
+      Savings are approximate database estimates, not live prices or guaranteed
+      discounts. Select one alternative per category.
+    </p>
+  </section>
+  <!-- END MAKE IT CHEAPER -->
+
+  <!-- DESTINATION RECOMMENDATIONS -->
+  {% if has_recommendations %}
+
   <section class="recommendations-section">
     <div class="section-heading">
       <span class="section-kicker">DISCOVER BEYOND THE ORDINARY</span>
+
       <h2>Places worth discovering</h2>
-      <p>Popular landmarks, local culture and quieter corners of Manali.</p>
+
+      <p>
+        Popular landmarks, local culture and quieter corners of {{ destination
+        }}.
+      </p>
     </div>
 
     <div class="recommendation-grid">
       {% for place in place_recommendations %}
+
       <article class="recommendation-card">
-        <span class="recommendation-tag">{{ place.kind }}</span>
+        <span class="recommendation-tag"> {{ place.kind }} </span>
+
         <h3>{{ place.name }}</h3>
+
         <p>{{ place.description }}</p>
 
         <div class="recommendation-meta">
@@ -129,29 +226,48 @@
           Explore location ↗
         </a>
       </article>
+
+      {% else %}
+
+      <p>No curated places are available for this destination yet.</p>
+
       {% endfor %}
     </div>
 
-    <div class="section-heading">
-      <span class="section-kicker">FIND YOUR BASE</span>
-      <h2>Stays to explore</h2>
+    <!-- ACCOMMODATION RECOMMENDATIONS -->
+    <div class="section-heading recommendation-heading">
+      <div>
+        <span class="section-kicker">FIND YOUR BASE</span>
+
+        <h2>Stays to explore</h2>
+
+        <p>Find a comfortable place to begin your journey.</p>
+      </div>
     </div>
 
-    <div class="recommendation-grid">
+    <div class="recommendation-grid stay-grid">
       {% for stay in stay_recommendations %}
+
       <article class="recommendation-card">
-        <span class="recommendation-tag">{{ stay.type }}</span>
+        <span class="recommendation-tag"> {{ stay.type }} </span>
+
         <h3>{{ stay.name }}</h3>
+
         <p>{{ stay.best_for }}</p>
+
         <div class="recommendation-meta">
           <span>{{ stay.area }}</span>
         </div>
+
         <a href="{{ stay.url }}" target="_blank" rel="noopener noreferrer">
-          Check property ↗
+          Explore stay ↗
         </a>
       </article>
+
       {% else %}
-      <p>No stays match this preference yet.</p>
+
+      <p>No stays match this accommodation preference yet.</p>
+
       {% endfor %}
     </div>
 
@@ -160,12 +276,18 @@
       These links do not guarantee a room or a live price.
     </p>
   </section>
+
   {% endif %}
+  <!-- END DESTINATION RECOMMENDATIONS -->
+
+  <!-- TRAVEL JOURNAL / INTERACTIVE NOTEBOOK -->
   <section class="journal-section">
     <div class="section-heading">
       <div>
         <span class="section-kicker">YOUR TRAVEL JOURNAL</span>
+
         <h2>Every day, a new discovery.</h2>
+
         <p>
           Edit an activity directly in the notebook. Your changes stay in this
           browser.
@@ -183,19 +305,27 @@
       </button>
 
       <div class="notebook">
+        <!-- LEFT PAGE -->
         <div class="notebook-page left-page" id="left-page">
           <h2>Your Journey Begins</h2>
+
           <p>Your travel journal for {{ destination }}.</p>
+
           <div class="notebook-note">
             <p><strong>Destination:</strong> {{ destination }}</p>
+
             <p><strong>Duration:</strong> {{ days }} days</p>
+
             <p><strong>Travellers:</strong> {{ travellers }}</p>
+
             <p><strong>Budget:</strong> ₹{{ "{:,}".format(budget) }}</p>
           </div>
         </div>
 
+        <!-- RIGHT PAGE -->
         <div class="notebook-page right-page" id="right-page">
           <h2>Day 1</h2>
+
           <p>Your itinerary will appear here.</p>
         </div>
       </div>
@@ -209,8 +339,10 @@
       </button>
     </div>
 
+    <!-- NOTEBOOK CONTROLS -->
     <div class="journal-controls">
-      <span id="spread-indicator" aria-live="polite">Your trip overview</span>
+      <span id="spread-indicator" aria-live="polite"> Your trip overview </span>
+
       <button type="button" class="hero-btn" id="reset-itinerary">
         Reset edits
       </button>
@@ -222,9 +354,11 @@
     </p>
   </section>
 
+  <!-- DATA FOR JAVASCRIPT -->
   <script id="itinerary-data" type="application/json">
     {{ itinerary|tojson }}
   </script>
+
   <div
     id="trip-data"
     data-destination="{{ destination }}"
