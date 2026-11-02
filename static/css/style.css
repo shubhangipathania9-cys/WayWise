@@ -1702,9 +1702,15 @@ html[data-theme="dark"] .notebook {
 }
 
 .editable-activity {
-  padding: 5px;
-  border-bottom: 1px dashed var(--border);
+  padding: 0;
+  margin: 0;
+  border-bottom: none;
   cursor: text;
+  line-height: 36px;
+  min-height: 36px;
+  color: var(--text);
+  outline: none;
+  overflow-wrap: anywhere;
 }
 
 .editable-activity:focus {
@@ -2502,4 +2508,105 @@ html[data-theme="light"] {
   .steps-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* =========================================
+   WAYWISE — MOBILE NOTEBOOK RESPONSIVENESS
+   ========================================= */
+
+@media (max-width: 600px) {
+  .notebook-wrapper {
+    width: calc(100% - 24px);
+    gap: 8px;
+  }
+
+  .notebook {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: auto;
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .notebook::after {
+    display: none;
+  }
+
+  .notebook-page {
+    width: 100%;
+    min-height: auto;
+    padding: 25px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .left-page {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .right-page {
+    border-left: 1px solid var(--border);
+  }
+
+  .notebook-page h2 {
+    font-size: 1.4rem;
+  }
+
+  .notebook-page p {
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  .day-section {
+    padding: 16px;
+  }
+
+  .page-arrow {
+    width: 38px;
+    height: 38px;
+  }
+}
+/* FIX: NOTEBOOK ACTIVITY ALIGNMENT */
+
+.notebook-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.notebook-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 0 12px;
+  margin: 0;
+  border-bottom: none;
+}
+
+.activity-time {
+  display: block;
+  line-height: 36px;
+  margin: 0;
+  padding: 0;
+}
+
+.editable-activity {
+  margin: 0;
+  padding: 0;
+  min-height: 36px;
+  line-height: 36px;
+  color: var(--text);
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.form-error {
+  color: #e58b8b;
+  margin: 0 0 18px;
+  font-size: 0.9rem;
 }

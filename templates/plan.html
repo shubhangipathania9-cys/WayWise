@@ -1,6 +1,5 @@
 {% extends "base.html" %} {% block title %}WayWise | Plan Your Trip{% endblock
 %} {% block content %}
-
 <section class="planning-page">
   <div class="planning-header">
     <h1>Plan Your Journey</h1>
@@ -9,6 +8,9 @@
       travel style.
     </p>
   </div>
+  {% if error %}
+  <p class="form-error">{{ error }}</p>
+  {% endif %}
 
   <form
     class="planning-form"
@@ -22,6 +24,13 @@
         id="destination"
         name="destination"
         placeholder="e.g. Manali"
+        required
+        minlength="2"
+        maxlength="60"
+        oninvalid="
+          this.setCustomValidity('Please enter your destination name.')
+        "
+        oninput="this.setCustomValidity('')"
       />
     </div>
 
@@ -33,7 +42,10 @@
           id="days"
           name="days"
           min="1"
+          max="30"
+          step="1"
           placeholder="e.g. 5"
+          required
         />
       </div>
 
@@ -44,7 +56,10 @@
           id="travellers"
           name="travellers"
           min="1"
+          max="20"
+          step="1"
           placeholder="e.g. 2"
+          required
         />
       </div>
     </div>
@@ -55,8 +70,14 @@
         type="number"
         id="budget"
         name="budget"
-        min="0"
+        min="1"
+        step="1"
         placeholder="₹ 25,000"
+        required
+        oninvalid="
+          this.setCustomValidity('Please enter your total trip budget.')
+        "
+        oninput="this.setCustomValidity('')"
       />
     </div>
 

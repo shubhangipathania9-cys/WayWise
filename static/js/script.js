@@ -427,39 +427,96 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
     }
 
+    // Build page content dynamically so edits always appear after page turns.
     const spreads = [];
 
     spreads.push({
-      left: createOverviewHTML(),
-      right: itinerary.length
-        ? createDayHTML(itinerary[0], 0)
-        : `
-                <h2>Your journey awaits</h2>
-            `,
+      left: { type: "overview" },
+      right: itinerary.length ? { type: "day", index: 0 } : { type: "empty" },
       label: "Your trip overview",
     });
 
     for (let i = 1; i < itinerary.length; i += 2) {
       spreads.push({
-        left: createDayHTML(itinerary[i], i),
+        left: { type: "day", index: i },
         right: itinerary[i + 1]
-          ? createDayHTML(itinerary[i + 1], i + 1)
-          : `
-                        <div class="notebook-cover">
-                            <h2>Journey Complete</h2>
-                            <p>May your next discovery be just around the corner.</p>
-                        </div>
-                    `,
+          ? { type: "day", index: i + 1 }
+          : { type: "complete" },
         label: `Days ${i + 1}–${Math.min(i + 2, itinerary.length)}`,
       });
+    }
+
+    function renderPage(page) {
+      if (page.type === "overview") {
+        return createOverviewHTML();
+      }
+
+      if (page.type === "day") {
+        const day = itinerary[page.index];
+        return day ? createDayHTML(day, page.index) : "";
+      }
+
+      if (page.type === "complete") {
+        return `
+          <div class="notebook-cover">
+            <h2>Journey Complete</h2>
+            <p>May your next discovery be just around the corner.</p>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="notebook-cover">
+          <h2>Your journey awaits</h2>
+        </div>
+      `;
+    }
+
+    let currentMobilePage = 0;
+
+    function isMobileNotebook() {
+      return window.matchMedia("(max-width: 600px)").matches;
     }
 
     function showSpread() {
       const spread = spreads[currentSpread];
 
-      leftPage.innerHTML = spread.left;
-      rightPage.innerHTML = spread.right;
+      if (!spread) return;
 
+      if (isMobileNotebook()) {
+        // Each spread contains two pages.
+        const totalPages = spreads.length * 2;
+        currentMobilePage = Math.min(currentMobilePage, totalPages - 1);
+
+        const spreadIndex = Math.floor(currentMobilePage / 2);
+        const pageSide = currentMobilePage % 2 === 0 ? "left" : "right";
+        const selectedSpread = spreads[spreadIndex];
+
+        leftPage.innerHTML = renderPage(selectedSpread[pageSide]);
+        rightPage.innerHTML = "";
+
+        notebook.classList.add("mobile-single-page");
+
+        if (indicator) {
+          indicator.textContent = `Page ${currentMobilePage + 1} of ${totalPages}`;
+        }
+
+        if (previousButton) {
+          previousButton.disabled = currentMobilePage === 0;
+        }
+
+        if (nextButton) {
+          nextButton.disabled = currentMobilePage === totalPages - 1;
+        }
+
+        return;
+      }
+
+      // Original desktop two-page layout
+      notebook.classList.remove("mobile-single-page");
+
+      leftPage.innerHTML = renderPage(spread.left);
+      rightPage.innerHTML = renderPage(spread.right);
       if (indicator) {
         indicator.textContent = spread.label;
       }
@@ -472,81 +529,43 @@ document.addEventListener("DOMContentLoaded", function () {
         nextButton.disabled = currentSpread === spreads.length - 1;
       }
     }
-
-    loadEdits();
-
-    // Rebuild spreads after loading saved edits
-    spreads.length = 0;
-
-    spreads.push({
-      left: createOverviewHTML(),
-      right: itinerary.length ? createDayHTML(itinerary[0], 0) : "",
-      label: "Your trip overview",
-    });
-
-    for (let i = 1; i < itinerary.length; i += 2) {
-      spreads.push({
-        left: createDayHTML(itinerary[i], i),
-        right: itinerary[i + 1]
-          ? createDayHTML(itinerary[i + 1], i + 1)
-          : `
-                        <div class="notebook-cover">
-                            <h2>Journey Complete</h2>
-                            <p>May your next discovery be just around the corner.</p>
-                        </div>
-                    `,
-        label: `Days ${i + 1}–${Math.min(i + 2, itinerary.length)}`,
-      });
-    }
-
+    // Previous page / spread
     if (previousButton) {
       previousButton.addEventListener("click", function () {
-        if (currentSpread > 0) {
-          currentSpread--;
-          showSpread();
+        if (isMobileNotebook()) {
+          currentMobilePage = Math.max(0, currentMobilePage - 1);
+          currentSpread = Math.floor(currentMobilePage / 2);
+        } else {
+          currentSpread = Math.max(0, currentSpread - 1);
+          currentMobilePage = currentSpread * 2;
         }
+
+        showSpread();
       });
     }
 
+    // Next page / spread
     if (nextButton) {
       nextButton.addEventListener("click", function () {
-        if (currentSpread < spreads.length - 1) {
-          currentSpread++;
-          showSpread();
+        if (isMobileNotebook()) {
+          const totalPages = spreads.length * 2;
+
+          currentMobilePage = Math.min(totalPages - 1, currentMobilePage + 1);
+
+          currentSpread = Math.floor(currentMobilePage / 2);
+        } else {
+          currentSpread = Math.min(spreads.length - 1, currentSpread + 1);
+
+          currentMobilePage = currentSpread * 2;
         }
+        showSpread();
       });
     }
 
-    notebook.addEventListener("input", function (event) {
-      const target = event.target;
+    // Keep the correct page visible when screen size changes
+    window.addEventListener("resize", showSpread);
 
-      if (!target.classList.contains("editable-activity")) return;
-
-      const dayIndex = Number(target.dataset.day);
-      const activityIndex = Number(target.dataset.activity);
-
-      const editedText = target.textContent.trim();
-
-      if (
-        itinerary[dayIndex] &&
-        itinerary[dayIndex].activities[activityIndex]
-      ) {
-        itinerary[dayIndex].activities[activityIndex].activity = editedText;
-
-        saveEdits();
-      }
-    });
-
-    if (resetButton) {
-      resetButton.addEventListener("click", function () {
-        try {
-          localStorage.removeItem(storageKey);
-        } catch (error) {}
-
-        window.location.reload();
-      });
-    }
-
+    // Display the first page
     showSpread();
   }
 
